@@ -6,6 +6,7 @@ const inventory = useInventory()
 const { exportToExcel } = useInventoryExport()
 const formState = useInventoryForm(inventory)
 const filterState = useInventoryFilters(inventory)
+const fcm = useFcm()
 
 type Section = 'dashboard' | 'products' | 'categories' | 'stock'
 const activeSection = ref<Section>('dashboard')
@@ -18,13 +19,12 @@ const notice = ref('')
 const previewImage = reactive({ url: null as string | null, title: '' })
 
 const logoutModal = reactive({ isOpen: false, isProcessing: false })
-const deleteModal = reactive({
-  isOpen: false,
-  title: '',
-  description: '',
-  action: null as (() => Promise<void>) | null,
-  isProcessing: false,
-})
+const {
+  deleteModal,
+  executeDelete,
+  confirmDeleteProduct,
+  confirmDeleteCategory,
+} = useProductDeleteAction(inventory, (msg) => { notice.value = msg })
 
 const editingProduct = computed(() =>
   formState.editingProductId.value
@@ -72,53 +72,13 @@ function handleFilterProductBySku(sku: string) {
   filterState.search.value = sku
 }
 
-function promptDelete(title: string, description: string, action: () => Promise<void>) {
-  deleteModal.title = title
-  deleteModal.description = description
-  deleteModal.action = action
-  deleteModal.isProcessing = false
-  deleteModal.isOpen = true
-}
-
-async function executeDelete() {
-  if (!deleteModal.action) return
-  deleteModal.isProcessing = true
-  try {
-    await deleteModal.action()
-    deleteModal.isOpen = false
-  } finally {
-    deleteModal.isProcessing = false
+async function handleEnablePushNotification() {
+  const token = await fcm.requestNotificationPermission()
+  if (token) {
+    notice.value = 'Web Push Notification (FCM) berhasil diaktifkan pada perangkat ini.'
+  } else if (fcm.errorMessage.value) {
+    notice.value = fcm.errorMessage.value
   }
-}
-
-function handleDeleteProduct(product: Product) {
-  promptDelete(
-    'Hapus Produk',
-    `Apakah Anda yakin ingin menghapus produk "${product.name}"? Foto dan data terkait akan dihapus secara permanen.`,
-    async () => {
-      try {
-        await inventory.deleteProduct(product.id)
-        notice.value = 'Produk berhasil dihapus.'
-      } catch {
-        notice.value = 'Produk gagal dihapus.'
-      }
-    }
-  )
-}
-
-function handleDeleteCategory(category: Category) {
-  promptDelete(
-    'Hapus Kategori',
-    `Apakah Anda yakin ingin menghapus kategori "${category.name}"? Pastikan tidak ada produk yang menggunakan kategori ini.`,
-    async () => {
-      try {
-        await inventory.deleteCategory(category.id)
-        notice.value = 'Kategori berhasil dihapus.'
-      } catch (e) {
-        notice.value = e instanceof Error ? e.message : 'Kategori gagal dihapus.'
-      }
-    }
-  )
 }
 </script>
 
@@ -153,9 +113,13 @@ function handleDeleteCategory(category: Category) {
         :product-count="inventory.products.value.length"
         :category-count="inventory.categories.value.length"
         :user-email="user?.email"
+        :fcm-enabled="Boolean(fcm.fcmToken.value)"
+        :fcm-loading="fcm.isSubscribing.value"
+        :fcm-token="fcm.fcmToken.value"
         v-model:mobile-open="mobileMenuOpen"
         @navigate="navigate"
         @open-logout="logoutModal.isOpen = true"
+        @enable-fcm="handleEnablePushNotification"
       >
         <!-- Alerts -->
         <p v-if="notice" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
@@ -164,6 +128,33 @@ function handleDeleteCategory(category: Category) {
         <p v-if="inventory.error.value" class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">
           Firestore: {{ inventory.error.value }}
         </p>
+
+        <!-- Incoming Push Notification Banners -->
+        <div v-if="fcm.incomingMessages.value.length" class="mb-5 space-y-2">
+          <div
+            v-for="msg in fcm.incomingMessages.value"
+            :key="msg.id"
+            class="flex items-start justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50/90 p-4 shadow-sm animate-slide-down"
+          >
+            <div class="flex items-start gap-3">
+              <div class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-indigo-600 text-white text-xs font-bold">
+                !
+              </div>
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-900">{{ msg.title }}</h4>
+                <p class="text-sm text-indigo-800 mt-0.5">{{ msg.body }}</p>
+                <p class="text-[11px] text-indigo-500 mt-1">{{ msg.receivedAt.toLocaleTimeString('id-ID') }}</p>
+              </div>
+            </div>
+            <button
+              class="rounded-lg p-1 text-indigo-400 hover:text-indigo-800 hover:bg-indigo-100 transition"
+              aria-label="Tutup notifikasi"
+              @click="fcm.dismissMessage(msg.id)"
+            >
+              ×
+            </button>
+          </div>
+        </div>
 
         <!-- View 1: Dashboard -->
         <DashboardOverview
@@ -191,7 +182,7 @@ function handleDeleteCategory(category: Category) {
           :low-stock-threshold="inventory.lowStockThreshold.value"
           @open-create="formState.resetProductForm()"
           @open-edit="formState.resetProductForm"
-          @delete="handleDeleteProduct"
+          @delete="confirmDeleteProduct"
           @open-movement="formState.openMovementForm"
           @preview-image="(p) => { previewImage.url = p.url; previewImage.title = p.title }"
         />
@@ -203,7 +194,7 @@ function handleDeleteCategory(category: Category) {
           :product-counts="filterState.productCountsByCategory.value"
           @open-create="formState.resetCategoryForm()"
           @open-edit="formState.resetCategoryForm"
-          @delete="handleDeleteCategory"
+          @delete="confirmDeleteCategory"
         />
 
         <!-- View 4: Pergerakan Stok -->

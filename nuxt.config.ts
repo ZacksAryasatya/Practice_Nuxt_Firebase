@@ -25,6 +25,7 @@ export default defineNuxtConfig({
       firebaseStorageBucket: '',
       firebaseMessagingSenderId: '',
       firebaseAppId: '',
+      firebaseVapidKey: '',
       supabaseUrl: '',
       supabasePublishableKey: '',
     },

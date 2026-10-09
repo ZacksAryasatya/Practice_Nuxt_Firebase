@@ -5,12 +5,17 @@ defineProps<{
   categoryCount: number
   userEmail?: string | null
   mobileOpen: boolean
+  fcmEnabled?: boolean
+  fcmLoading?: boolean
+  fcmToken?: string | null
+  unreadCount?: number
 }>()
 
 const emit = defineEmits<{
   (e: 'navigate', section: 'dashboard' | 'products' | 'categories' | 'stock'): void
   (e: 'update:mobileOpen', val: boolean): void
   (e: 'open-logout'): void
+  (e: 'enable-fcm'): void
 }>()
 </script>
 
@@ -117,6 +122,24 @@ const emit = defineEmits<{
           </div>
         </div>
         <div class="flex items-center gap-3">
+          <!-- Tombol Push Notification FCM -->
+          <button
+            type="button"
+            :disabled="fcmLoading"
+            class="flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold transition active:scale-95"
+            :class="fcmEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-white text-slate-700 hover:bg-slate-50'"
+            :title="fcmEnabled ? 'Web Push Notifikasi FCM Aktif' : 'Aktifkan Web Push Notifikasi FCM'"
+            @click="emit('enable-fcm')"
+          >
+            <span class="relative flex h-2 w-2">
+              <span v-if="fcmEnabled" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2" :class="fcmEnabled ? 'bg-emerald-500' : 'bg-slate-300'"></span>
+            </span>
+            <span class="hidden sm:inline">
+              {{ fcmLoading ? 'Mendaftarkan...' : (fcmEnabled ? 'Notifikasi Aktif' : 'Aktifkan Push Notif') }}
+            </span>
+          </button>
+
           <span class="hidden text-sm text-slate-500 md:block">{{ userEmail }}</span>
           <button
             class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95"

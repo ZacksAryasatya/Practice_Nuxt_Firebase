@@ -1,0 +1,107 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
+    function validCategory(data) {
+      return data.keys().hasAll(['name', 'normalizedName', 'description', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'normalizedName', 'description', 'createdAt', 'updatedAt'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.normalizedName is string && data.normalizedName.size() > 0 && data.normalizedName.size() <= 100
+        && data.description is string && data.description.size() <= 500;
+    }
+
+    function validProduct(data) {
+      return data.keys().hasAll(['name', 'normalizedName', 'sku', 'categoryId', 'description', 'priceIdr', 'stockQuantity', 'status', 'createdAt', 'updatedAt'])
+        && data.keys().hasOnly(['name', 'normalizedName', 'sku', 'categoryId', 'description', 'priceIdr', 'stockQuantity', 'status', 'createdAt', 'updatedAt', 'imagePath', 'lastStockMovementId'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 150
+        && data.normalizedName is string && data.normalizedName.size() > 0 && data.normalizedName.size() <= 150
+        && data.sku is string && data.sku.size() > 0 && data.sku.size() <= 50
+        && data.categoryId is string && data.categoryId.size() > 0
+        && data.description is string && data.description.size() <= 2000
+        && data.priceIdr is int && data.priceIdr >= 0
+        && data.stockQuantity is int && data.stockQuantity >= 0
+        && data.status in ['active', 'inactive']
+        && (!('imagePath' in data) || (data.imagePath is string && data.imagePath.size() <= 300))
+        && (!('lastStockMovementId' in data) || data.lastStockMovementId is string);
+    }
+
+    function validMovement(data) {
+      return data.keys().hasAll(['productId', 'productName', 'sku', 'type', 'quantity', 'previousStock', 'newStock', 'reason', 'adminUid', 'adminEmail', 'createdAt'])
+        && data.keys().hasOnly(['productId', 'productName', 'sku', 'type', 'quantity', 'previousStock', 'newStock', 'reason', 'adminUid', 'adminEmail', 'createdAt'])
+        && data.productId is string && data.productId.size() > 0
+        && data.productName is string && data.productName.size() > 0 && data.productName.size() <= 150
+        && data.sku is string && data.sku.size() > 0 && data.sku.size() <= 50
+        && data.type in ['in', 'out']
+        && data.quantity is int && data.quantity > 0
+        && data.previousStock is int && data.previousStock >= 0
+        && data.newStock is int && data.newStock >= 0
+        && data.reason is string && data.reason.size() > 0 && data.reason.size() <= 500
+        && data.adminUid == request.auth.uid
+        && data.adminEmail is string && data.adminEmail.size() <= 256;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && validCategory(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+        && validCategory(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && validProduct(request.resource.data)
+        && request.resource.data.stockQuantity == 0
+        && exists(/databases/$(database)/documents/categories/$(request.resource.data.categoryId))
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if isAdmin()
+        && validProduct(request.resource.data)
+        && exists(/databases/$(database)/documents/categories/$(request.resource.data.categoryId))
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && ((request.resource.data.stockQuantity == resource.data.stockQuantity
+          && ((!('lastStockMovementId' in request.resource.data) && !('lastStockMovementId' in resource.data))
+            || ('lastStockMovementId' in request.resource.data && 'lastStockMovementId' in resource.data && request.resource.data.lastStockMovementId == resource.data.lastStockMovementId)))
+          || (request.resource.data.stockQuantity != resource.data.stockQuantity
+            && request.resource.data.stockQuantity == getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastStockMovementId)).data.newStock
+            && getAfter(/databases/$(database)/documents/stockMovements/$(request.resource.data.lastStockMovementId)).data.productId == productId));
+      allow delete: if isAdmin();
+    }
+
+    match /stockMovements/{movementId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && validMovement(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/products/$(request.resource.data.productId))
+        && get(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.stockQuantity == request.resource.data.previousStock
+        && getAfter(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.stockQuantity == request.resource.data.newStock
+        && getAfter(/databases/$(database)/documents/products/$(request.resource.data.productId)).data.lastStockMovementId == movementId
+        && ((request.resource.data.type == 'in' && request.resource.data.newStock == request.resource.data.previousStock + request.resource.data.quantity)
+          || (request.resource.data.type == 'out' && request.resource.data.newStock == request.resource.data.previousStock - request.resource.data.quantity));
+      allow update, delete: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && settingId == 'inventory'
+        && request.resource.data.keys().hasOnly(['lowStockThreshold', 'updatedAt'])
+        && request.resource.data.lowStockThreshold is int
+        && request.resource.data.lowStockThreshold >= 0
+        && request.resource.data.lowStockThreshold <= 999999
+        && request.resource.data.updatedAt == request.time;
+      allow delete: if false;
+    }
+  }
+}

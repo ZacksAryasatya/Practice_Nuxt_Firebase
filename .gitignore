@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+.nuxt/
+.output/
+dist/
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+*.service-account.json
+service-account*.json
+firebase-admin-key*.json
+
+# Logs and local tooling
+*.log
+.DS_Store
+.idea/
+.vscode/
+.firebase/

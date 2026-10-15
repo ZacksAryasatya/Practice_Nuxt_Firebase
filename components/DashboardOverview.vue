@@ -6,6 +6,9 @@ const props = defineProps<{
   categories: Category[]
   productImageUrls: Record<string, string>
   lowStockThreshold: number
+  activeProductsCount: number
+  lowStockProducts: Product[]
+  formattedTotalInventoryValue: string
 }>()
 
 const emit = defineEmits<{
@@ -15,14 +18,6 @@ const emit = defineEmits<{
   (e: 'preview-image', payload: { url: string; title: string }): void
   (e: 'filter-product', sku: string): void
 }>()
-
-const activeProducts = computed(() => props.products.filter(p => p.status === 'active'))
-const lowStockProducts = computed(() => props.products.filter(p => p.stockQuantity <= props.lowStockThreshold))
-const totalInventoryValue = computed(() => props.products.reduce((sum, p) => sum + p.priceIdr * p.stockQuantity, 0))
-
-function formatPrice(val: number) {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
-}
 
 function getCategoryName(id: string) {
   return props.categories.find(c => c.id === id)?.name ?? 'Kategori tidak ditemukan'
@@ -64,7 +59,7 @@ function getCategoryName(id: string) {
       </div>
       <div class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
         <p class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Produk Aktif</p>
-        <p class="mt-2 text-3xl font-extrabold text-emerald-700">{{ activeProducts.length }}</p>
+        <p class="mt-2 text-3xl font-extrabold text-emerald-700">{{ activeProductsCount }}</p>
       </div>
       <div class="rounded-2xl bg-white p-5 shadow-sm border border-slate-100">
         <p class="text-xs font-semibold uppercase tracking-wider text-amber-600">Stok Menipis (≤ {{ lowStockThreshold }})</p>
@@ -79,7 +74,7 @@ function getCategoryName(id: string) {
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
           <div>
             <h3 class="font-bold text-slate-900">Produk Terbaru</h3>
-            <p class="mt-0.5 text-xs text-slate-500">Nilai total inventaris: {{ formatPrice(totalInventoryValue) }}</p>
+            <p class="mt-0.5 text-xs text-slate-500">Nilai total inventaris: {{ formattedTotalInventoryValue }}</p>
           </div>
           <button class="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition" @click="emit('navigate', 'products')">
             Lihat semua

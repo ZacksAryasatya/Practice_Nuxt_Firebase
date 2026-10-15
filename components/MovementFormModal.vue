@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { Product } from '~/types/inventory'
+import type { SelectOption } from '~/components/CustomSelect.vue'
 
-const props = defineProps<{
+defineProps<{
   isOpen: boolean
   form: {
     productId: string
@@ -9,7 +10,7 @@ const props = defineProps<{
     quantity: number
     reason: string
   }
-  products: Product[]
+  productOptions: SelectOption[]
   formError?: string
   isSubmitting?: boolean
 }>()
@@ -18,17 +19,6 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'submit'): void
 }>()
-
-const productOptions = computed(() => {
-  return [
-    { label: 'Pilih barang yang ingin disesuaikan stoknya', value: '', disabled: true },
-    ...props.products.map(p => ({
-      label: `${p.name} (${p.sku})`,
-      value: p.id,
-      description: `Sisa Stok: ${p.stockQuantity}`,
-    })),
-  ]
-})
 </script>
 
 <template>

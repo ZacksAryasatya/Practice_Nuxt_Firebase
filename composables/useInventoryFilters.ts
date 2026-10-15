@@ -1,4 +1,5 @@
 import type { Category, Product } from '~/types/inventory'
+import type { SelectOption } from '~/components/CustomSelect.vue'
 
 export function useInventoryFilters(inventory: ReturnType<typeof useInventory>) {
   const search = ref('')
@@ -7,6 +8,16 @@ export function useInventoryFilters(inventory: ReturnType<typeof useInventory>) 
   const movementSearch = ref('')
   const movementTypeFilter = ref('')
   const lowStockThresholdInput = ref(5)
+
+  function formatPrice(val: number) {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
+  }
+
+  // Domain calculations
+  const activeProducts = computed(() => inventory.products.value.filter(p => p.status === 'active'))
+  const lowStockProducts = computed(() => inventory.products.value.filter(p => p.stockQuantity <= inventory.lowStockThreshold.value))
+  const totalInventoryValue = computed(() => inventory.products.value.reduce((sum, p) => sum + p.priceIdr * p.stockQuantity, 0))
+  const formattedTotalInventoryValue = computed(() => formatPrice(totalInventoryValue.value))
 
   const filteredProducts = computed(() =>
     inventory.products.value.filter((p) => {
@@ -33,6 +44,26 @@ export function useInventoryFilters(inventory: ReturnType<typeof useInventory>) 
     return map
   })
 
+  // Pre-formatted Options for Dropdowns
+  const categoryFilterOptions = computed<SelectOption[]>(() => [
+    { label: 'Semua kategori', value: '' },
+    ...inventory.categories.value.map(c => ({ label: c.name, value: c.id })),
+  ])
+
+  const categoryFormOptions = computed<SelectOption[]>(() => [
+    { label: 'Pilih kategori barang', value: '', disabled: true },
+    ...inventory.categories.value.map(c => ({ label: c.name, value: c.id })),
+  ])
+
+  const productMovementOptions = computed<SelectOption[]>(() => [
+    { label: 'Pilih barang yang ingin disesuaikan stoknya', value: '', disabled: true },
+    ...inventory.products.value.map(p => ({
+      label: `${p.name} (${p.sku})`,
+      value: p.id,
+      description: `Sisa Stok: ${p.stockQuantity}`,
+    })),
+  ])
+
   watch(
     () => inventory.lowStockThreshold.value,
     (val) => {
@@ -56,9 +87,16 @@ export function useInventoryFilters(inventory: ReturnType<typeof useInventory>) 
     movementSearch,
     movementTypeFilter,
     lowStockThresholdInput,
+    activeProducts,
+    lowStockProducts,
+    totalInventoryValue,
+    formattedTotalInventoryValue,
     filteredProducts,
     filteredMovements,
     productCountsByCategory,
+    categoryFilterOptions,
+    categoryFormOptions,
+    productMovementOptions,
     handleSaveThreshold,
   }
 }

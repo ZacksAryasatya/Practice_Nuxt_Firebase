@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Category, Product } from '~/types/inventory'
+import type { SelectOption } from '~/components/CustomSelect.vue'
 
 const props = defineProps<{
   isOpen: boolean
@@ -12,7 +13,7 @@ const props = defineProps<{
     priceIdr: number
     status: 'active' | 'inactive'
   }
-  categories: Category[]
+  categoryOptions: SelectOption[]
   currentProduct?: Product
   currentImageUrl?: string
   removeExistingImage: boolean
@@ -46,12 +47,7 @@ const formattedPrice = computed(() => {
   return props.form.priceIdr === 0 ? '0' : new Intl.NumberFormat('id-ID').format(props.form.priceIdr)
 })
 
-const categoryOptions = computed(() => [
-  { label: 'Pilih kategori barang', value: '', disabled: true },
-  ...props.categories.map(c => ({ label: c.name, value: c.id })),
-])
-
-const statusOptions = [
+const statusOptions: SelectOption[] = [
   { label: 'Aktif (Tersedia)', value: 'active' },
   { label: 'Nonaktif (Diarsipkan)', value: 'inactive' },
 ]

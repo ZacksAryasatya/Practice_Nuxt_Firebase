@@ -82,9 +82,7 @@ async function handleEnablePushNotification() {
 function handleTriggerTestNotification() {
   const title = 'Tes Notifikasi Berhasil!'
   const body = 'FCM push notification siap digunakan untuk alert stok.'
-  if (Notification.permission === 'granted') {
-    new Notification(title, { body, icon: '/favicon.ico' })
-  }
+  if (Notification.permission === 'granted') new Notification(title, { body, icon: '/favicon.ico' })
   fcm.incomingMessages.value.unshift({ id: crypto.randomUUID(), title, body, receivedAt: new Date() })
   notice.value = 'Notifikasi uji coba berhasil dikirim!'
 }
@@ -168,6 +166,9 @@ function handleTriggerTestNotification() {
           :categories="inventory.categories.value"
           :product-image-urls="inventory.productImageUrls.value"
           :low-stock-threshold="inventory.lowStockThreshold.value"
+          :active-products-count="filterState.activeProducts.value.length"
+          :low-stock-products="filterState.lowStockProducts.value"
+          :formatted-total-inventory-value="filterState.formattedTotalInventoryValue.value"
           @navigate="navigate"
           @open-product="formState.resetProductForm()"
           @open-movement="formState.openMovementForm()"
@@ -180,6 +181,7 @@ function handleTriggerTestNotification() {
           v-else-if="activeSection === 'products'"
           :products="filterState.filteredProducts.value"
           :categories="inventory.categories.value"
+          :category-options="filterState.categoryFilterOptions.value"
           :product-image-urls="inventory.productImageUrls.value"
           v-model:search="filterState.search.value"
           v-model:category-filter="filterState.categoryFilter.value"
@@ -226,7 +228,7 @@ function handleTriggerTestNotification() {
         :is-open="formState.showProductForm.value"
         :is-editing="Boolean(formState.editingProductId.value)"
         :form="formState.productForm"
-        :categories="inventory.categories.value"
+        :category-options="filterState.categoryFormOptions.value"
         :current-product="editingProduct"
         :current-image-url="formState.editingProductId.value ? inventory.productImageUrls.value[formState.editingProductId.value] : undefined"
         :remove-existing-image="formState.removeExistingImage.value"
@@ -251,21 +253,19 @@ function handleTriggerTestNotification() {
       <MovementFormModal
         :is-open="formState.showMovementForm.value"
         :form="formState.movementForm"
-        :products="inventory.products.value"
+        :product-options="filterState.productMovementOptions.value"
         :form-error="formState.formError.value"
         :is-submitting="formState.isSubmitting.value"
         @close="formState.showMovementForm.value = false"
         @submit="formState.submitMovement({ uid: user?.uid || '', email: user?.email || '' }, (msg) => notice = msg)"
       />
 
-      <!-- Image Lightbox -->
       <ImageLightbox
         :image-url="previewImage.url"
         :title="previewImage.title"
         @close="previewImage.url = null"
       />
 
-      <!-- Modals -->
       <ConfirmModal
         :is-open="deleteModal.isOpen"
         :title="deleteModal.title"
@@ -286,8 +286,6 @@ function handleTriggerTestNotification() {
         @close="logoutModal.isOpen = false"
         @confirm="confirmLogout"
       />
-
-      <!-- FCM Registration Token Modal -->
       <FcmTokenModal
         :is-open="showFcmModal"
         :token="fcm.fcmToken.value"

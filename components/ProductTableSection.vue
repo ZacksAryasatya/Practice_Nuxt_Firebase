@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type { Category, Product } from '~/types/inventory'
+import type { SelectOption } from '~/components/CustomSelect.vue'
 
 const props = defineProps<{
   products: Product[]
   categories: Category[]
+  categoryOptions: SelectOption[]
   productImageUrls: Record<string, string>
   search: string
   categoryFilter: string
@@ -22,6 +24,12 @@ const emit = defineEmits<{
   (e: 'preview-image', payload: { url: string; title: string }): void
 }>()
 
+const statusOptions: SelectOption[] = [
+  { label: 'Semua status', value: '' },
+  { label: 'Aktif (Tersedia)', value: 'active' },
+  { label: 'Nonaktif (Diarsipkan)', value: 'inactive' },
+]
+
 function formatPrice(val: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
 }
@@ -29,17 +37,6 @@ function formatPrice(val: number) {
 function getCategoryName(id: string) {
   return props.categories.find(c => c.id === id)?.name ?? 'Kategori tidak ditemukan'
 }
-
-const categoryOptions = computed(() => [
-  { label: 'Semua kategori', value: '' },
-  ...props.categories.map(c => ({ label: c.name, value: c.id })),
-])
-
-const statusOptions = computed(() => [
-  { label: 'Semua status', value: '' },
-  { label: 'Aktif (Tersedia)', value: 'active' },
-  { label: 'Nonaktif (Diarsipkan)', value: 'inactive' },
-])
 </script>
 
 <template>

@@ -26,34 +26,23 @@ async function copyToken() {
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="fixed inset-0 z-50 grid place-items-center p-4">
-      <!-- Backdrop Gelap (Murni Fade Tanpa Scale) -->
-      <Transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-        appear
-      >
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="isOpen" class="fixed inset-0 z-50 grid place-items-center p-4">
+        <!-- Backdrop Gelap -->
         <div
-          class="fixed inset-0 bg-slate-950/60"
+          class="fixed inset-0 bg-slate-950/60 transition-opacity"
           @click="emit('close')"
         />
-      </Transition>
 
-      <!-- Kotak Modal Dialog (Scale & Slide) -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95 translate-y-2"
-        enter-to-class="opacity-100 scale-100 translate-y-0"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100 translate-y-0"
-        leave-to-class="opacity-0 scale-95 translate-y-2"
-        appear
-      >
-        <section class="relative z-10 w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl border border-slate-100">
+        <!-- Kotak Modal Dialog -->
+        <section class="relative z-10 w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl border border-slate-100 transition-all">
           <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
             <div class="flex items-center gap-3">
               <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-100 text-emerald-700">
@@ -119,7 +108,7 @@ async function copyToken() {
             </button>
           </div>
         </section>
-      </Transition>
-    </div>
+      </div>
+    </Transition>
   </Teleport>
 </template>

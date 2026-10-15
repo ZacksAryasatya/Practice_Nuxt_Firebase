@@ -23,34 +23,23 @@ const emit = defineEmits<{
 
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="fixed inset-0 z-40 grid place-items-center p-4">
-      <!-- Backdrop Gelap (Fade Murni) -->
-      <Transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-        appear
-      >
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="isOpen" class="fixed inset-0 z-40 grid place-items-center p-4">
+        <!-- Backdrop Gelap -->
         <div
-          class="fixed inset-0 bg-slate-950/60"
+          class="fixed inset-0 bg-slate-950/60 transition-opacity"
           @click="emit('close')"
         />
-      </Transition>
 
-      <!-- Kotak Modal Dialog (Scale & Slide) -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95 translate-y-2"
-        enter-to-class="opacity-100 scale-100 translate-y-0"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100 translate-y-0"
-        leave-to-class="opacity-0 scale-95 translate-y-2"
-        appear
-      >
-        <section class="relative z-10 w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl border border-slate-100">
+        <!-- Kotak Modal Dialog -->
+        <section class="relative z-10 w-full max-w-lg rounded-3xl bg-white p-7 shadow-2xl border border-slate-100 transition-all">
           <div class="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
             <div>
               <p class="text-[11px] font-bold uppercase tracking-widest text-indigo-600">Stock Control</p>
@@ -165,7 +154,7 @@ const emit = defineEmits<{
             </div>
           </form>
         </section>
-      </Transition>
-    </div>
+      </div>
+    </Transition>
   </Teleport>
 </template>

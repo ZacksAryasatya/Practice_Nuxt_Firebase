@@ -75,7 +75,7 @@ Rows/cards expose View/Edit/Delete actions with accessible names. Confirm destru
 +------------------+-----------------------------------+
 ```
 
-Mark required fields, associate inline errors using `aria-describedby`, announce save status, and disable duplicate submission while saving. State the 5 MB image upload limit with client compression beside the file input.
+Mark required fields, associate inline errors using `aria-describedby`, announce save status, and disable duplicate submission while saving. Image is compressed to lightweight WebP Base64 directly inside Firestore.
 
 ## Category list/form
 

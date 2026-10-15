@@ -52,7 +52,7 @@ The admin is an Authentication identity, not a user-owned data record required f
 | `priceIdr` | integer number | yes | Non-negative whole rupiah. |
 | `stockQuantity` | integer number | yes | Non-negative integer. Starts at zero; later changes only through a stock movement transaction. |
 | `status` | string | yes | `active` or `inactive`. |
-| `imagePath` | string | no | Supabase Storage object path; source of truth for the product photo, not a public URL. |
+| `photoBase64` | string | no | Compressed WebP Base64 string (< 300.000 chars, ~225 KB) stored directly in Firestore. |
 | `createdAt` | Timestamp | yes | Server timestamp, immutable after creation. |
 | `updatedAt` | Timestamp | yes | Server timestamp. |
 | `lastStockMovementId` | string | no | Most recent movement document ID, updated atomically with balance. |
@@ -81,7 +81,9 @@ Global inventory configuration shared by authorized admins.
 | `lowStockThreshold` | integer | yes | Non-negative threshold used by dashboard warnings. |
 | `updatedAt` | Timestamp | yes | Server timestamp. |
 
-Private bucket: `product-images`; object path: `{productId}/{fileId}.{extension}`. Keep the bucket private, apply storage policies, and create short-lived signed URLs to display files. In accordance with SOP/GRC/DEV-SPB/2026/008, maximum upload size is 5 MB with automatic client-side compression targeting < 1 MB.
+## Image Storage Architecture
+
+Product images are compressed in the browser (max 600px dimension, WebP/JPEG) and stored directly in the `photoBase64` field of the product document. String length is constrained to <= 300.000 characters by client and <= 350.000 characters by Firestore Security Rules, ensuring document size stays far below Firestore's 1 MiB limit. External storage buckets are completely omitted.
 
 ## Query and index guidance
 
@@ -96,6 +98,6 @@ Firestore does not provide relational foreign keys or unique constraints. Catego
 
 ## Data lifecycle
 
-- Delete/replace the Supabase object when a product photo is deleted/replaced; handle partial failures and possible orphan cleanup.
+- Product photo is updated or cleared by mutating `photoBase64` directly on the Firestore document.
 - Block category deletion while products reference it.
 - Product stock begins at zero; all later balance changes must use the movement transaction.

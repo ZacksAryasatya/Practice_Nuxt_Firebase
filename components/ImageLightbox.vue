@@ -11,34 +11,23 @@ const emit = defineEmits<{
 
 <template>
   <Teleport to="body">
-    <div v-if="imageUrl" class="fixed inset-0 z-50 grid place-items-center p-4">
-      <!-- Backdrop Gelap (Fade Murni) -->
-      <Transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity duration-150 ease-in"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0"
-        appear
-      >
+    <Transition
+      enter-active-class="transition duration-200 ease-out"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition duration-150 ease-in"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div v-if="imageUrl" class="fixed inset-0 z-50 grid place-items-center p-4">
+        <!-- Backdrop Gelap -->
         <div
-          class="fixed inset-0 bg-slate-950/80"
+          class="fixed inset-0 bg-slate-950/80 transition-opacity"
           @click="emit('close')"
         />
-      </Transition>
 
-      <!-- Kotak Preview (Scale & Slide) -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
-        appear
-      >
-        <div class="relative z-10 max-h-[90vh] max-w-3xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl">
+        <!-- Kotak Preview -->
+        <div class="relative z-10 max-h-[90vh] max-w-3xl overflow-hidden rounded-2xl bg-white p-4 shadow-2xl transition-all">
           <div class="mb-3 flex items-center justify-between border-b pb-2">
             <h3 class="font-bold text-slate-800">{{ title || 'Foto Produk' }}</h3>
             <button class="rounded-lg p-1 text-2xl text-slate-400 hover:text-slate-800" aria-label="Tutup" @click="emit('close')">
@@ -54,7 +43,7 @@ const emit = defineEmits<{
             </a>
           </div>
         </div>
-      </Transition>
-    </div>
+      </div>
+    </Transition>
   </Teleport>
 </template>

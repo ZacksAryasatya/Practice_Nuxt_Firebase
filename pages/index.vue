@@ -16,6 +16,16 @@ const loginEmail = ref('')
 const loginError = ref('')
 const isLoggingIn = ref(false)
 const notice = ref('')
+let noticeTimer: ReturnType<typeof setTimeout> | null = null
+
+function setNotice(msg: string) {
+  notice.value = msg
+  if (noticeTimer) clearTimeout(noticeTimer)
+  noticeTimer = setTimeout(() => {
+    notice.value = ''
+  }, 4500)
+}
+
 const previewImage = reactive({ url: null as string | null, title: '' })
 
 const logoutModal = reactive({ isOpen: false, isProcessing: false })
@@ -24,7 +34,7 @@ const {
   executeDelete,
   confirmDeleteProduct,
   confirmDeleteCategory,
-} = useProductDeleteAction(inventory, (msg) => { notice.value = msg })
+} = useProductDeleteAction(inventory, setNotice)
 
 const editingProduct = computed(() =>
   formState.editingProductId.value
@@ -73,9 +83,9 @@ async function handleEnablePushNotification() {
   const token = await fcm.requestNotificationPermission()
   if (token) {
     showFcmModal.value = true
-    notice.value = 'Web Push Notification (FCM) berhasil diaktifkan pada perangkat ini.'
+    setNotice('Web Push Notification (FCM) berhasil diaktifkan pada perangkat ini.')
   } else if (fcm.errorMessage.value) {
-    notice.value = fcm.errorMessage.value
+    setNotice(fcm.errorMessage.value)
   }
 }
 </script>
@@ -205,7 +215,7 @@ async function handleEnablePushNotification() {
           v-model:threshold-input="filterState.lowStockThresholdInput.value"
           :current-page="inventory.stockMovementPage.value"
           :has-next-page="inventory.stockMovementHasNext.value"
-          @save-threshold="filterState.handleSaveThreshold((msg) => notice = msg)"
+          @save-threshold="filterState.handleSaveThreshold(setNotice)"
           @open-create="formState.openMovementForm()"
           @export-excel="exportToExcel(filterState.filteredMovements.value, filterState.movementSearch.value, filterState.movementTypeFilter.value)"
           @prev-page="inventory.previousStockMovementPage"
@@ -226,7 +236,7 @@ async function handleEnablePushNotification() {
         :form-error="formState.formError.value"
         :is-submitting="formState.isSubmitting.value"
         @close="formState.showProductForm.value = false"
-        @submit="formState.submitProduct((msg) => notice = msg)"
+        @submit="formState.submitProduct(setNotice)"
         @update:image="formState.selectedImage.value = $event"
         @update:remove-image="formState.removeExistingImage.value = $event"
       />
@@ -238,7 +248,7 @@ async function handleEnablePushNotification() {
         :form-error="formState.formError.value"
         :is-submitting="formState.isSubmitting.value"
         @close="formState.showCategoryForm.value = false"
-        @submit="formState.submitCategory((msg) => notice = msg)"
+        @submit="formState.submitCategory(setNotice)"
       />
 
       <MovementFormModal
@@ -248,7 +258,7 @@ async function handleEnablePushNotification() {
         :form-error="formState.formError.value"
         :is-submitting="formState.isSubmitting.value"
         @close="formState.showMovementForm.value = false"
-        @submit="formState.submitMovement({ uid: user?.uid || '', email: user?.email || '' }, (msg) => notice = msg)"
+        @submit="formState.submitMovement({ uid: user?.uid || '', email: user?.email || '' }, setNotice)"
       />
 
       <ImageLightbox

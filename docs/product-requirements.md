@@ -18,7 +18,7 @@ A responsive web panel for a small shop administrator to manage product and cate
 - Deliver product and category CRUD with useful validation and feedback.
 - Show data changes in real time where it improves the workflow.
 - Keep the project on no-cost Firebase services and do not enable billing or upgrade to a paid plan.
-- Use Supabase Storage Free for product image uploads with the verified Firebase Auth integration and Storage policies; Firebase remains the Authentication/Firestore learning backend.
+- Use Cloud Firestore for data and client-side auto-compressed Base64 image storage, eliminating external storage dependencies and maintaining 100% Firebase architecture.
 
 ## 3. Non-goals for MVP
 
@@ -66,9 +66,9 @@ Account provisioning is performed outside public signup (for example, create the
 
 ### Product files
 
-- Upload optional JPEG, PNG, or WebP product images to Supabase Storage Free; maximum file size 5 MB with client-side compression/resizing (SOP/GRC/DEV-SPB/2026/008).
-- Keep Supabase Storage private and use its access policies; store the object path (not a privileged secret) in Firestore.
-- Do not use Firebase Cloud Storage. Keep the Supabase project on its Free plan and do not enable paid features or upgrades.
+- Store product images directly inside Cloud Firestore using client-side auto-compressed Base64 data strings (`photoBase64`).
+- Images are automatically scaled to max 600px and converted to WebP with target length <= 300.000 characters (~225 KB), keeping documents far below Firestore's 1 MiB limit.
+- External cloud storage dependencies are removed to maintain 100% Firebase Spark zero-cost operations.
 
 ### Stock movements
 
@@ -93,7 +93,7 @@ Account provisioning is performed outside public signup (for example, create the
 - Currency: IDR, stored as integer rupiah.
 - Time values: Firestore server timestamps; display in the user's local timezone.
 - One admin role in MVP. Authorization is enforced by Firebase Security Rules, not by hiding UI controls.
-- Cost guardrail: do not link a payment method, enable billing, upgrade Firebase to Blaze or Supabase to a paid plan, or deploy a service that requires billing. Stop if prompted for a paid upgrade.
+- Cost guardrail: do not link a payment method, enable billing, upgrade Firebase to Blaze, or deploy a service that requires billing. Stop if prompted for a paid upgrade.
 - No committed credentials. Firebase web configuration is supplied through public Nuxt runtime configuration/environment variables; it is not a secret. Admin SDK credentials, if added in a later server feature, must remain server-only.
 - Development and production use separate Firebase projects. Do not test against production data.
 
@@ -103,7 +103,7 @@ Account provisioning is performed outside public signup (for example, create the
 2. An authorized admin can complete category and product CRUD and receives clear success/error feedback.
 3. Invalid required fields, negative price/stock, invalid SKU, and invalid/oversized image files are rejected.
 4. Product list can search/filter and reflects updates from another authorized client without manual refresh.
-5. Product image uploads are stored in private Supabase Storage, with the object path associated in Firestore; Firebase Storage is not used.
+5. Product images are stored directly in Cloud Firestore as compressed Base64 strings; external storage services are not required.
 6. Category deletion is prevented while referenced by a product.
 7. The app works on mobile and desktop widths, has keyboard-accessible forms/actions, and does not expose secrets in client bundles.
 
@@ -116,7 +116,7 @@ Account provisioning is performed outside public signup (for example, create the
 
 ## 9. Risks and constraints
 
-- Free-tier terms and quotas may change. Supabase Free currently lists 1 GB file storage, but this is a quota, not a guarantee that the service remains free forever; verify current terms and stop before any paid upgrade.
+- Free-tier terms and quotas may change. Spark plan limits apply; avoid high-volume tests and do not upgrade to Blaze.
 - Firestore is document-oriented, not relational. Avoid treating the conceptual ERD as a set of SQL tables.
 - Uniqueness and referential integrity across documents need careful design; transactions/security-rule constraints or a trusted server may be needed as the app grows.
 - Realtime listeners consume quota; query with limits and avoid unnecessary listeners. Free quotas can be exhausted, so avoid high-volume tests.

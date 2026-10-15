@@ -3,8 +3,8 @@
 ## Test layers
 
 1. **Unit/component:** field validation, formatting, reusable form states, and UI behavior.
-2. **Authorization tests:** Firestore Rules and Supabase Storage policies, using Firebase Emulator Suite and a Supabase local/test project where practical.
-3. **Integration:** Authentication state, CRUD service calls, realtime subscription cleanup, and Supabase upload/signed URL flow.
+2. **Authorization tests:** Firestore Rules security and validation, using Firebase Emulator Suite where practical.
+3. **Integration:** Authentication state, CRUD service calls, realtime subscription cleanup, Base64 image compression, and FCM push notifications.
 4. **Manual acceptance:** responsive layout, keyboard interaction, and complete admin workflows.
 
 Do not use production data or credentials for tests.
@@ -22,9 +22,7 @@ Do not use production data or credentials for tests.
 | Admin creates valid movement with matching balance update in one transaction | Allowed |
 | Stock-out exceeds current balance | Denied; neither write commits |
 | Client updates/deletes a movement document | Denied |
-| Admin uploads supported image within 5 MB under intended bucket/path | Allowed |
-| Unsupported/oversized image or wrong bucket/path | Denied |
-| Unauthenticated or non-admin Supabase Storage access | Denied |
+| Base64 image payload exceeds rules limit (> 350.000 chars) | Denied |
 
 ## Functional acceptance checklist
 
@@ -45,9 +43,8 @@ Do not use production data or credentials for tests.
 - [ ] Search, category/status filters, and bounded pagination behave correctly.
 - [ ] Delete requires confirmation.
 - [ ] Realtime updates arrive from a second authorized client; listener is removed when leaving the view.
-- [ ] Valid product image uploads to Supabase Storage and renders through a signed URL; invalid type/oversized file is rejected.
-- [ ] Firebase ID token with `authenticated` and `admin` claims is accepted by registered Supabase integration; Storage RLS denies other identities.
-- [ ] Product photo replace/delete works; partial failures are surfaced for cleanup.
+- [ ] Product image auto-compresses to WebP Base64 under 300.000 characters and renders cleanly in product list and lightbox.
+- [ ] Product photo replace/delete clears `photoBase64` correctly.
 - [ ] Empty, loading, success, and failure states are understandable.
 - [ ] Keyboard-only navigation, focus visibility, labels, and dialog behavior are usable.
 - [ ] Mobile and desktop layouts remain usable.
@@ -58,6 +55,6 @@ Do not use production data or credentials for tests.
 - Run lint, type-check, and build commands defined by the Nuxt project.
 - Run emulator rules tests before deploying rules.
 - Verify environment points at intended Firebase project and inspect rules/index changes.
-- Confirm Firebase remains on Spark and Supabase remains on Free, with no paid upgrade or billing-dependent feature enabled.
+- Confirm Firebase remains on Spark with no paid upgrade or billing-dependent feature enabled.
 - Back up/review existing inventory, run opening-balance migration once if products already exist, then publish the new Firestore rules.
 - Check current free-plan quotas before deployment; stop before any paid upgrade.

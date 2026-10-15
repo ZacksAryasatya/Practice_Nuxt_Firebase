@@ -19,18 +19,18 @@
 
 1. Admin opens Products and sees loading, empty, or a bounded realtime list.
 2. Admin searches/filters or selects **Add product**.
-3. Admin enters fields and optionally selects JPEG, PNG, or WebP image up to 5 MB with client-side compression.
-4. Client validates fields and image type/size.
-5. Image is uploaded to private Supabase Storage; its object path is saved on the Firestore product document.
-6. Success notice appears and the list/detail reflects the change through the listener. Failed operations show an error; partial failures may require image cleanup.
+3. Admin enters fields and optionally selects JPEG, PNG, or WebP image.
+4. Client automatically compresses image to WebP Base64 string (< 300.000 characters).
+5. Document is saved to Cloud Firestore with `photoBase64` and server timestamps.
+6. Success notice appears and the list/detail reflects the change through the realtime listener.
 
 ## 3. Delete product
 
 1. Admin selects Delete.
 2. Confirmation dialog identifies the product and explains the action.
 3. Cancel leaves data untouched.
-4. Confirm deletes the Firestore document and the associated Supabase object when present.
-5. Show success or a recoverable error. If one resource succeeds and another fails, surface the partial failure for retry/cleanup.
+4. Confirm deletes the Firestore document.
+5. Show success or a recoverable error.
 
 ## 4. Manage categories
 
@@ -68,11 +68,11 @@ flowchart TD
     F --> H[Create/edit product]
     H --> I{Validate fields}
     I -- Invalid --> H
-    I -- Valid --> J[Upload optional image to Supabase Storage]
-    J --> K[Write Firestore document with object path]
+    I -- Valid --> J[Auto-compress image to Base64 if selected]
+    J --> K[Write Firestore document with photoBase64]
     K --> F
     F --> L[Confirm delete]
-    L --> M[Delete product document and Supabase object]
+    L --> M[Delete product document]
     M --> F
     G --> N[Create/edit/delete category]
     N --> O{Referenced by product?}

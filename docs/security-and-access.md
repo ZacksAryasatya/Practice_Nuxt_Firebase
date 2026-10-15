@@ -2,7 +2,7 @@
 
 ## Terminology
 
-The project may call this “RLS-like access control,” but Firebase uses **Firestore Security Rules**, while Supabase Storage uses access policies backed by Supabase Auth/Postgres RLS. Authorization must be enforced at both services, not only in the UI.
+The project uses **Firestore Security Rules** for comprehensive server-side authorization. Direct client SDK operations against Firestore and Cloud Messaging are guarded strictly by rules and tokens.
 
 ## Identity and admin provisioning
 
@@ -42,27 +42,16 @@ The project may call this “RLS-like access control,” but Firebase uses **Fir
 - Review deployed rules and indexes before release. Test both allowed and denied cases.
 - Check current Firebase free-plan terms and quotas before deployment; do not activate billing for this project.
 
-## Supabase Storage access
-
-- Use a private `product-images` bucket.
-- Enable uploads/downloads only for the authorized admin identity; enforce policies on `storage.objects` scoped to the bucket and intended object path.
-- Never put the Supabase service-role key in Nuxt public config or browser code. The public anon key may be used with properly configured policies.
-- Configure Supabase's hosted Firebase third-party Auth integration with the exact Firebase project ID. Supabase documents direct use of the Firebase ID token as the Supabase client's access token; this avoids a custom API server.
-- Firebase ID tokens need the `role: authenticated` custom claim for Supabase to apply the `authenticated` Postgres role. The admin also receives `admin: true` for restrictive policies. Assign claims with `npm run set-admin-claims` from a trusted local computer; keep any service-account credential outside the repository, never expose it to Nuxt/browser code, and delete/revoke the credential after use. This is not a deployed Cloud Function.
-- Storage RLS policies scope operations to the private `product-images` bucket and require `admin: true`. In accordance with SOP/GRC/DEV-SPB/2026/008, upload is capped at 5 MB with client-side compression. Test upload, read, update, and delete with authorized and unauthorized tokens.
-- Supabase hosted Firebase integration validates registered Firebase project tokens. Do not assume the Firebase token works until integration, role claim, and policy tests pass.
-
 ## Cost guardrail
 
-- Use Supabase Free for file storage and Firebase Spark for Auth/Firestore. Do not enable Firebase Cloud Storage, link a payment method, or upgrade either provider to a paid plan.
-- Supabase pricing currently lists 1 GB file storage on Free; quotas and terms can change. Stay below limits and stop before any paid upgrade or billing prompt.
+- Use Firebase Spark free tier only. Do not enable Firebase Cloud Storage, link a payment method, or upgrade to Blaze.
+- Product images are stored directly in Firestore as auto-compressed Base64, completely removing external object storage dependencies.
 
 ## Threat cases to test
 
-1. Signed-out client reads or writes products/categories.
+1. Signed-out client reads or writes products/categories/movements.
 2. Authenticated non-admin reads/writes data.
 3. Admin attempts unsupported fields, invalid types, negative amounts, or forbidden timestamp changes.
-4. Unauthorized user accesses the Supabase Storage bucket/object path.
-5. Supabase service-role key is exposed to the browser.
-6. Production app is accidentally configured against development project or vice versa.
-7. Application unexpectedly initializes or requests a billing-dependent service.
+4. Client attempts storing uncompressed/oversized Base64 image (> 350.000 characters).
+5. Production app is accidentally configured against development project or vice versa.
+6. Application unexpectedly initializes or requests a billing-dependent service.

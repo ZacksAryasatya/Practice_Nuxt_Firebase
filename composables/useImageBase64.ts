@@ -2,18 +2,33 @@
  * Mengompresi file gambar menjadi data URL string Base64 yang sangat ringan (< 225 KB)
  * agar aman disimpan langsung di dokumen Cloud Firestore tanpa membebani limit 1 MiB.
  *
- * Menggunakan pendekatan iteratif (loop): menurunkan kualitas lalu dimensi
- * jika gambar berdetail tinggi masih melampaui target.
+ * Menggunakan array konfigurasi deklaratif (data-driven attempts):
+ * menurunkan kualitas lossy terlebih dahulu, lalu menurunkan skala dimensi jika diperlukan.
  */
+
+interface CompressionStep {
+  scale: number
+  quality: number
+}
+
+const COMPRESSION_STEPS: CompressionStep[] = [
+  { scale: 1.0, quality: 0.75 },
+  { scale: 1.0, quality: 0.60 },
+  { scale: 0.75, quality: 0.55 },
+  { scale: 0.50, quality: 0.50 },
+]
+
 export async function compressImageToBase64(
   file: File,
   maxDimension = 600,
-  initialQuality = 0.75,
-  maxBase64Length = 300_000 // ~225 KB raw data, batas konservatif yang sangat aman untuk Firestore
+  maxBase64Length = 300_000 // ~225 KB biner, margin sangat aman untuk dokumen Firestore
 ): Promise<string> {
-  // 1. Validasi awal tipe file
+  // 1. Validasi parameter input
+  if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
+    throw new Error('Parameter maxDimension harus berupa angka positif.')
+  }
   if (!file || !file.type.startsWith('image/')) {
-    throw new Error('File yang dipilih bukan format gambar yang didukung.')
+    throw new Error('File yang dipilih bukan berkas gambar yang didukung.')
   }
 
   const isPng = file.type === 'image/png'
@@ -23,16 +38,20 @@ export async function compressImageToBase64(
     objectUrl = URL.createObjectURL(file)
     const image = await loadImage(objectUrl)
 
-    // Tentukan format target yang aman
-    const targetMime = determineTargetMime(isPng)
+    // 2. Validasi integritas visual: tolak gambar rusak / kosong (naturalWidth/Height = 0)
+    const naturalWidth = image.naturalWidth || image.width
+    const naturalHeight = image.naturalHeight || image.height
+    if (!naturalWidth || !naturalHeight) {
+      throw new Error('Berkas gambar tidak memiliki dimensi valid atau mengalami kerusakan.')
+    }
 
-    // 2. Iterasi kompresi: mulai dari kualitas awal, turunkan kualitas, lalu turunkan resolusi jika perlu
-    let currentDimension = maxDimension
-    let currentQuality = initialQuality
     let bestBase64 = ''
 
-    for (let attempt = 1; attempt <= 4; attempt++) {
-      const { width, height } = calculateDimensions(image.width, image.height, currentDimension)
+    // 3. Eksekusi tahapan kompresi berurutan sesuai konfigurasi deklaratif
+    for (const step of COMPRESSION_STEPS) {
+      const targetMaxDim = Math.max(1, Math.round(maxDimension * step.scale))
+      const { width, height } = calculateDimensions(naturalWidth, naturalHeight, targetMaxDim)
+
       const canvas = document.createElement('canvas')
       canvas.width = Math.max(1, width)
       canvas.height = Math.max(1, height)
@@ -45,42 +64,28 @@ export async function compressImageToBase64(
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
 
-      bestBase64 = canvas.toDataURL(targetMime, currentQuality)
+      // Coba kompresi WebP (mendukung lossy + transparansi)
+      bestBase64 = canvas.toDataURL('image/webp', step.quality)
 
-      // Jika browser tidak mendukung webp dan fallback jpeg dipaksa, cek header
-      if (targetMime === 'image/webp' && !bestBase64.startsWith('data:image/webp')) {
-        // Fallback: jika gambar transparan gunakan png kualitas canvas, jika tidak gunakan jpeg
+      // Fallback jika browser lawas tidak mendukung export webp
+      if (!bestBase64.startsWith('data:image/webp')) {
         const fallbackMime = isPng ? 'image/png' : 'image/jpeg'
-        bestBase64 = canvas.toDataURL(fallbackMime, currentQuality)
+        bestBase64 = canvas.toDataURL(fallbackMime, step.quality)
       }
 
-      // Jika ukuran sudah di bawah ambang batas aman, langsung kembalikan
+      // Berhenti dan kembalikan hasil jika sudah memenuhi batas aman
       if (bestBase64.length <= maxBase64Length) {
         return bestBase64
       }
-
-      // Penyesuaian iteratif untuk putaran berikutnya
-      if (attempt === 1) {
-        currentQuality = 0.6
-      } else if (attempt === 2) {
-        currentDimension = Math.round(maxDimension * 0.75) // misal: 450px
-        currentQuality = 0.55
-      } else if (attempt === 3) {
-        currentDimension = Math.round(maxDimension * 0.5) // misal: 300px
-        currentQuality = 0.5
-      }
     }
 
-    // Jika setelah 4 kali percobaan ukuran masih melebihi target
-    if (bestBase64.length > maxBase64Length) {
-      throw new Error(
-        `Gambar terlalu kompleks untuk disimpan langsung di Firestore (${Math.round((bestBase64.length * 0.75) / 1024)} KB > target 225 KB). Silakan gunakan gambar dengan resolusi lebih kecil.`
-      )
-    }
-
-    return bestBase64
+    // 4. Jika setelah seluruh tahapan masih melampaui batas aman
+    const finalSizeKb = Math.round((bestBase64.length * 0.75) / 1024)
+    throw new Error(
+      `Gambar terlalu kompleks (${finalSizeKb} KB > target 225 KB). Silakan pilih gambar dengan resolusi lebih kecil.`
+    )
   } finally {
-    // 3. Pastikan pembersihan object URL selalu dieksekusi di blok finally
+    // 5. Pembersihan alokasi memori browser selalu dijamin berjalan
     if (objectUrl) {
       URL.revokeObjectURL(objectUrl)
     }
@@ -91,7 +96,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Gagal memuat file gambar. Pastikan file tidak rusak/korup.'))
+    img.onerror = () => reject(new Error('Gagal memuat file gambar. Format berkas tidak dapat didekode.'))
     img.src = src
   })
 }
@@ -115,10 +120,4 @@ function calculateDimensions(
   }
 
   return { width, height }
-}
-
-function determineTargetMime(isPng: boolean): string {
-  // WebP mendukung lossy compression + alpha transparency di semua modern browser
-  // Jika file PNG, WebP menjaga transparansi logo tanpa background hitam
-  return 'image/webp'
 }

@@ -27,6 +27,9 @@ export async function compressImageToBase64(
   if (!Number.isFinite(maxDimension) || maxDimension <= 0) {
     throw new Error('Parameter maxDimension harus berupa angka positif.')
   }
+  if (!Number.isSafeInteger(maxBase64Length) || maxBase64Length <= 0) {
+    throw new Error('Parameter maxBase64Length harus berupa bilangan bulat positif.')
+  }
   if (!file || !file.type.startsWith('image/')) {
     throw new Error('File yang dipilih bukan berkas gambar yang didukung.')
   }
@@ -106,18 +109,11 @@ function calculateDimensions(
   origHeight: number,
   maxDim: number
 ): { width: number; height: number } {
-  let width = origWidth
-  let height = origHeight
+  // Gunakan skala minimum agar gambar kecil tidak diperbesar (upscale)
+  const scale = Math.min(1, maxDim / origWidth, maxDim / origHeight)
 
-  if (width > maxDim || height > maxDim) {
-    if (width > height) {
-      height = Math.round((height * maxDim) / width)
-      width = maxDim
-    } else {
-      width = Math.round((width * maxDim) / height)
-      height = maxDim
-    }
+  return {
+    width: Math.max(1, Math.round(origWidth * scale)),
+    height: Math.max(1, Math.round(origHeight * scale)),
   }
-
-  return { width, height }
 }

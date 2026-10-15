@@ -1,90 +1,124 @@
 /**
- * Mengompresi file gambar menjadi data URL string Base64 yang ringan
- * agar aman disimpan langsung di dokumen Cloud Firestore.
- * 
- * Target ukuran output: < 300 KB (string Base64 < 450.000 karakter).
- * Batas dokumen Firestore: 1 MiB (1.048.576 bytes) untuk keseluruhan dokumen.
+ * Mengompresi file gambar menjadi data URL string Base64 yang sangat ringan (< 225 KB)
+ * agar aman disimpan langsung di dokumen Cloud Firestore tanpa membebani limit 1 MiB.
+ *
+ * Menggunakan pendekatan iteratif (loop): menurunkan kualitas lalu dimensi
+ * jika gambar berdetail tinggi masih melampaui target.
  */
 export async function compressImageToBase64(
   file: File,
   maxDimension = 600,
-  quality = 0.75,
-  maxBase64Length = 550_000 // ~400 KB raw data, aman dari limit 1 MiB Firestore
+  initialQuality = 0.75,
+  maxBase64Length = 300_000 // ~225 KB raw data, batas konservatif yang sangat aman untuk Firestore
 ): Promise<string> {
-  // 1. Validasi tipe file di awal
+  // 1. Validasi awal tipe file
   if (!file || !file.type.startsWith('image/')) {
-    throw new Error('File yang dipilih bukan gambar yang valid.')
+    throw new Error('File yang dipilih bukan format gambar yang didukung.')
   }
 
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    const objectUrl = URL.createObjectURL(file)
+  const isPng = file.type === 'image/png'
+  let objectUrl: string | null = null
 
-    image.onload = () => {
-      URL.revokeObjectURL(objectUrl)
-      let { width, height } = image
+  try {
+    objectUrl = URL.createObjectURL(file)
+    const image = await loadImage(objectUrl)
 
-      // 2. Skalakan dimensi proporsional
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width)
-          width = maxDimension
-        } else {
-          width = Math.round((width * maxDimension) / height)
-          height = maxDimension
-        }
-      }
+    // Tentukan format target yang aman
+    const targetMime = determineTargetMime(isPng)
 
+    // 2. Iterasi kompresi: mulai dari kualitas awal, turunkan kualitas, lalu turunkan resolusi jika perlu
+    let currentDimension = maxDimension
+    let currentQuality = initialQuality
+    let bestBase64 = ''
+
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      const { width, height } = calculateDimensions(image.width, image.height, currentDimension)
       const canvas = document.createElement('canvas')
       canvas.width = Math.max(1, width)
       canvas.height = Math.max(1, height)
+
       const ctx = canvas.getContext('2d')
-
-      // 3. Jangan fallback ke file asli jika context canvas gagal
       if (!ctx) {
-        reject(new Error('Browser gagal memproses kanvas grafis untuk kompresi gambar.'))
-        return
+        throw new Error('Browser gagal menginisialisasi kanvas grafis untuk pemrosesan gambar.')
       }
 
-      try {
-        ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height)
 
-        // 4. Utamakan webp untuk rasio kompresi lossy terbaik + dukungan transparansi
-        // Fallback ke jpeg jika webp tidak didukung
-        let base64String = canvas.toDataURL('image/webp', quality)
-        if (!base64String.startsWith('data:image/webp')) {
-          base64String = canvas.toDataURL('image/jpeg', quality)
-        }
+      bestBase64 = canvas.toDataURL(targetMime, currentQuality)
 
-        // 5. Validasi ukuran string Base64 akhir agar tidak membobol batas 1 MiB Firestore
-        if (base64String.length > maxBase64Length) {
-          // Percobaan kompresi darurat kedua dengan resolusi & kualitas lebih rendah
-          const emergencyCanvas = document.createElement('canvas')
-          emergencyCanvas.width = Math.round(canvas.width * 0.7)
-          emergencyCanvas.height = Math.round(canvas.height * 0.7)
-          const emergencyCtx = emergencyCanvas.getContext('2d')
-          if (emergencyCtx) {
-            emergencyCtx.drawImage(canvas, 0, 0, emergencyCanvas.width, emergencyCanvas.height)
-            base64String = emergencyCanvas.toDataURL('image/jpeg', 0.6)
-          }
+      // Jika browser tidak mendukung webp dan fallback jpeg dipaksa, cek header
+      if (targetMime === 'image/webp' && !bestBase64.startsWith('data:image/webp')) {
+        // Fallback: jika gambar transparan gunakan png kualitas canvas, jika tidak gunakan jpeg
+        const fallbackMime = isPng ? 'image/png' : 'image/jpeg'
+        bestBase64 = canvas.toDataURL(fallbackMime, currentQuality)
+      }
 
-          if (base64String.length > maxBase64Length) {
-            reject(new Error('Ukuran gambar terkompresi masih melebihi batas aman dokumen Firestore (< 400 KB).'))
-            return
-          }
-        }
+      // Jika ukuran sudah di bawah ambang batas aman, langsung kembalikan
+      if (bestBase64.length <= maxBase64Length) {
+        return bestBase64
+      }
 
-        resolve(base64String)
-      } catch (err) {
-        reject(new Error(`Gagal mengonversi gambar ke Base64: ${err instanceof Error ? err.message : String(err)}`))
+      // Penyesuaian iteratif untuk putaran berikutnya
+      if (attempt === 1) {
+        currentQuality = 0.6
+      } else if (attempt === 2) {
+        currentDimension = Math.round(maxDimension * 0.75) // misal: 450px
+        currentQuality = 0.55
+      } else if (attempt === 3) {
+        currentDimension = Math.round(maxDimension * 0.5) // misal: 300px
+        currentQuality = 0.5
       }
     }
 
-    image.onerror = () => {
+    // Jika setelah 4 kali percobaan ukuran masih melebihi target
+    if (bestBase64.length > maxBase64Length) {
+      throw new Error(
+        `Gambar terlalu kompleks untuk disimpan langsung di Firestore (${Math.round((bestBase64.length * 0.75) / 1024)} KB > target 225 KB). Silakan gunakan gambar dengan resolusi lebih kecil.`
+      )
+    }
+
+    return bestBase64
+  } finally {
+    // 3. Pastikan pembersihan object URL selalu dieksekusi di blok finally
+    if (objectUrl) {
       URL.revokeObjectURL(objectUrl)
-      reject(new Error('Gagal memuat file gambar. Pastikan format file tidak korup.'))
     }
+  }
+}
 
-    image.src = objectUrl
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Gagal memuat file gambar. Pastikan file tidak rusak/korup.'))
+    img.src = src
   })
+}
+
+function calculateDimensions(
+  origWidth: number,
+  origHeight: number,
+  maxDim: number
+): { width: number; height: number } {
+  let width = origWidth
+  let height = origHeight
+
+  if (width > maxDim || height > maxDim) {
+    if (width > height) {
+      height = Math.round((height * maxDim) / width)
+      width = maxDim
+    } else {
+      width = Math.round((width * maxDim) / height)
+      height = maxDim
+    }
+  }
+
+  return { width, height }
+}
+
+function determineTargetMime(isPng: boolean): string {
+  // WebP mendukung lossy compression + alpha transparency di semua modern browser
+  // Jika file PNG, WebP menjaga transparansi logo tanpa background hitam
+  return 'image/webp'
 }

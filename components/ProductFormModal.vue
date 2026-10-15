@@ -34,24 +34,17 @@ function handleFileChange(event: Event) {
   emit('update:removeImage', false)
 }
 
-const formattedPrice = computed({
-  get() {
-    if (!props.form.priceIdr && props.form.priceIdr !== 0) return ''
-    if (props.form.priceIdr === 0) return '0'
-    return new Intl.NumberFormat('id-ID').format(props.form.priceIdr)
-  },
-  set(val: string) {
-    const rawNumber = Number(val.replace(/\D/g, ''))
-    props.form.priceIdr = isNaN(rawNumber) ? 0 : rawNumber
-  },
-})
-
 function handlePriceInput(event: Event) {
   const target = event.target as HTMLInputElement
   const rawNumber = Number(target.value.replace(/\D/g, ''))
   props.form.priceIdr = isNaN(rawNumber) ? 0 : rawNumber
   target.value = props.form.priceIdr === 0 ? '0' : new Intl.NumberFormat('id-ID').format(props.form.priceIdr)
 }
+
+const formattedPrice = computed(() => {
+  if (!props.form.priceIdr && props.form.priceIdr !== 0) return ''
+  return props.form.priceIdr === 0 ? '0' : new Intl.NumberFormat('id-ID').format(props.form.priceIdr)
+})
 
 const categoryOptions = computed(() => [
   { label: 'Pilih kategori barang', value: '', disabled: true },
@@ -195,7 +188,7 @@ const statusOptions = [
 
           <div>
             <label for="product-image" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-              Foto Produk <span class="text-xs font-normal text-slate-400">(JPEG, PNG, WebP · maks. 5 MB)</span>
+              Foto Produk <span class="text-xs font-normal text-slate-400">(Disimpan langsung di Firestore · Maks. 5 MB)</span>
             </label>
             <input
               id="product-image"

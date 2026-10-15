@@ -10,10 +10,13 @@ This format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Interactive photo preview lightbox with full-resolution open capability.
 - Custom styled deletion confirmation dialogs replacing default browser alerts.
 - Firestore cursor pagination (`startAfter`) for historical stock movements.
+- Firebase Cloud Messaging (FCM) Web Push Notification integration with service worker.
+- Client-side auto-compressed Base64 product image storage directly inside Cloud Firestore.
 
 ### Changed
+- Migrated product image storage from Supabase to 100% Firebase (Firestore `photoBase64`), removing `@supabase/supabase-js` dependency.
 - Standardized terminology from "Saldo" to "Stok Sebelum / Stok Sesudah" across the UI and Excel reports.
-- Optimized bundle sizes using dynamic lazy imports for both Supabase Storage client and Excel generation modules.
+- Modularized monolithic Vue pages into separate single-responsibility components and composables (< 300 lines).
 
 ---
 

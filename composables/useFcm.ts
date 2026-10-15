@@ -59,8 +59,9 @@ export function useFcm() {
       const { app } = useFirebaseClient()
       messagingInstance = getMessaging(app)
 
-      // Pastikan service worker terdaftar
-      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      // Pastikan service worker terdaftar dan aktif
+      await navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      const registration = await navigator.serviceWorker.ready
 
       const token = await getToken(messagingInstance, {
         vapidKey,

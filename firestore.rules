@@ -15,7 +15,7 @@ service cloud.firestore {
 
     function validProduct(data) {
       return data.keys().hasAll(['name', 'normalizedName', 'sku', 'categoryId', 'description', 'priceIdr', 'stockQuantity', 'status', 'createdAt', 'updatedAt'])
-        && data.keys().hasOnly(['name', 'normalizedName', 'sku', 'categoryId', 'description', 'priceIdr', 'stockQuantity', 'status', 'createdAt', 'updatedAt', 'imagePath', 'lastStockMovementId'])
+        && data.keys().hasOnly(['name', 'normalizedName', 'sku', 'categoryId', 'description', 'priceIdr', 'stockQuantity', 'status', 'createdAt', 'updatedAt', 'imagePath', 'photoBase64', 'lastStockMovementId'])
         && data.name is string && data.name.size() > 0 && data.name.size() <= 150
         && data.normalizedName is string && data.normalizedName.size() > 0 && data.normalizedName.size() <= 150
         && data.sku is string && data.sku.size() > 0 && data.sku.size() <= 50
@@ -25,6 +25,7 @@ service cloud.firestore {
         && data.stockQuantity is int && data.stockQuantity >= 0
         && data.status in ['active', 'inactive']
         && (!('imagePath' in data) || (data.imagePath is string && data.imagePath.size() <= 300))
+        && (!('photoBase64' in data) || (data.photoBase64 is string && data.photoBase64.size() <= 600000))
         && (!('lastStockMovementId' in data) || data.lastStockMovementId is string);
     }
 

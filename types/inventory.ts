@@ -18,6 +18,7 @@ export interface Product {
   stockQuantity: number
   status: 'active' | 'inactive'
   imagePath?: string | null
+  photoBase64?: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }

@@ -67,18 +67,26 @@ function navigate(section: Section) {
   notice.value = ''
 }
 
-function handleFilterProductBySku(sku: string) {
-  navigate('products')
-  filterState.search.value = sku
-}
+const showFcmModal = ref(false)
 
 async function handleEnablePushNotification() {
   const token = await fcm.requestNotificationPermission()
   if (token) {
+    showFcmModal.value = true
     notice.value = 'Web Push Notification (FCM) berhasil diaktifkan pada perangkat ini.'
   } else if (fcm.errorMessage.value) {
     notice.value = fcm.errorMessage.value
   }
+}
+
+function handleTriggerTestNotification() {
+  const title = 'Tes Notifikasi Berhasil!'
+  const body = 'FCM push notification siap digunakan untuk alert stok.'
+  if (Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/favicon.ico' })
+  }
+  fcm.incomingMessages.value.unshift({ id: crypto.randomUUID(), title, body, receivedAt: new Date() })
+  notice.value = 'Notifikasi uji coba berhasil dikirim!'
 }
 </script>
 
@@ -120,14 +128,11 @@ async function handleEnablePushNotification() {
         @navigate="navigate"
         @open-logout="logoutModal.isOpen = true"
         @enable-fcm="handleEnablePushNotification"
+        @show-token="showFcmModal = true"
+        @test-notification="handleTriggerTestNotification"
       >
-        <!-- Alerts -->
-        <p v-if="notice" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">
-          {{ notice }}
-        </p>
-        <p v-if="inventory.error.value" class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">
-          Firestore: {{ inventory.error.value }}
-        </p>
+        <p v-if="notice" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">{{ notice }}</p>
+        <p v-if="inventory.error.value" class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">Firestore: {{ inventory.error.value }}</p>
 
         <!-- Incoming Push Notification Banners -->
         <div v-if="fcm.incomingMessages.value.length" class="mb-5 space-y-2">
@@ -156,7 +161,7 @@ async function handleEnablePushNotification() {
           </div>
         </div>
 
-        <!-- View 1: Dashboard -->
+        <!-- Dashboard -->
         <DashboardOverview
           v-if="activeSection === 'dashboard'"
           :products="inventory.products.value"
@@ -167,10 +172,10 @@ async function handleEnablePushNotification() {
           @open-product="formState.resetProductForm()"
           @open-movement="formState.openMovementForm()"
           @preview-image="(p) => { previewImage.url = p.url; previewImage.title = p.title }"
-          @filter-product="handleFilterProductBySku"
+          @filter-product="(sku) => { navigate('products'); filterState.search.value = sku }"
         />
 
-        <!-- View 2: Produk -->
+        <!-- Produk -->
         <ProductTableSection
           v-else-if="activeSection === 'products'"
           :products="filterState.filteredProducts.value"
@@ -187,7 +192,7 @@ async function handleEnablePushNotification() {
           @preview-image="(p) => { previewImage.url = p.url; previewImage.title = p.title }"
         />
 
-        <!-- View 3: Kategori -->
+        <!-- Kategori -->
         <CategoryTableSection
           v-else-if="activeSection === 'categories'"
           :categories="inventory.categories.value"
@@ -197,7 +202,7 @@ async function handleEnablePushNotification() {
           @delete="confirmDeleteCategory"
         />
 
-        <!-- View 4: Pergerakan Stok -->
+        <!-- Pergerakan Stok -->
         <StockMovementSection
           v-else
           :movements="filterState.filteredMovements.value"
@@ -260,7 +265,7 @@ async function handleEnablePushNotification() {
         @close="previewImage.url = null"
       />
 
-      <!-- Action Confirmation Modals -->
+      <!-- Modals -->
       <ConfirmModal
         :is-open="deleteModal.isOpen"
         :title="deleteModal.title"
@@ -280,6 +285,14 @@ async function handleEnablePushNotification() {
         confirm-text="Ya, Keluar"
         @close="logoutModal.isOpen = false"
         @confirm="confirmLogout"
+      />
+
+      <!-- FCM Registration Token Modal -->
+      <FcmTokenModal
+        :is-open="showFcmModal"
+        :token="fcm.fcmToken.value"
+        @close="showFcmModal = false"
+        @test="handleTriggerTestNotification"
       />
     </template>
   </main>

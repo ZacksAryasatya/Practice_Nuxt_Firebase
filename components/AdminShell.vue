@@ -16,6 +16,8 @@ const emit = defineEmits<{
   (e: 'update:mobileOpen', val: boolean): void
   (e: 'open-logout'): void
   (e: 'enable-fcm'): void
+  (e: 'show-token'): void
+  (e: 'test-notification'): void
 }>()
 </script>
 
@@ -128,16 +130,26 @@ const emit = defineEmits<{
             :disabled="fcmLoading"
             class="flex items-center gap-2 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold transition active:scale-95"
             :class="fcmEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-white text-slate-700 hover:bg-slate-50'"
-            :title="fcmEnabled ? 'Web Push Notifikasi FCM Aktif' : 'Aktifkan Web Push Notifikasi FCM'"
-            @click="emit('enable-fcm')"
+            :title="fcmEnabled ? 'Lihat token FCM' : 'Aktifkan Web Push Notifikasi FCM'"
+            @click="fcmEnabled ? emit('show-token') : emit('enable-fcm')"
           >
             <span class="relative flex h-2 w-2">
               <span v-if="fcmEnabled" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2" :class="fcmEnabled ? 'bg-emerald-500' : 'bg-slate-300'"></span>
             </span>
             <span class="hidden sm:inline">
-              {{ fcmLoading ? 'Mendaftarkan...' : (fcmEnabled ? 'Notifikasi Aktif' : 'Aktifkan Push Notif') }}
+              {{ fcmLoading ? 'Mendaftarkan...' : (fcmEnabled ? 'Notifikasi Aktif (Lihat Token)' : 'Aktifkan Push Notif') }}
             </span>
+          </button>
+
+          <button
+            v-if="fcmEnabled"
+            type="button"
+            class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 active:scale-95"
+            title="Kirim tes notifikasi langsung ke browser"
+            @click="emit('test-notification')"
+          >
+            Tes Notifikasi
           </button>
 
           <span class="hidden text-sm text-slate-500 md:block">{{ userEmail }}</span>

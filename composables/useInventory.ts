@@ -48,6 +48,7 @@ function toProduct(snapshot: QueryDocumentSnapshot<DocumentData>): Product {
     stockQuantity: Number(data.stockQuantity ?? 0),
     status: data.status === 'inactive' ? 'inactive' : 'active',
     imagePath: typeof data.imagePath === 'string' ? data.imagePath : null,
+    photoBase64: typeof data.photoBase64 === 'string' ? data.photoBase64 : null,
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
   }
@@ -85,14 +86,15 @@ export function useInventory() {
 
     stopProducts = onSnapshot(query(collection(db, 'products'), orderBy('name')), (snapshot) => {
       products.value = snapshot.docs.map(toProduct)
-      void Promise.all(products.value.filter(p => p.imagePath && !productImageUrls.value[p.id]).map(async (p) => {
-        try {
-          const { getProductImageUrl } = await import('~/composables/useSupabaseStorage')
-          productImageUrls.value[p.id] = await getProductImageUrl(p.imagePath!)
-        } catch {
+
+      // Sinkronkan gambar produk Base64 dari Firestore ke cache tampilan
+      for (const p of products.value) {
+        if (p.photoBase64) {
+          productImageUrls.value[p.id] = p.photoBase64
+        } else {
           delete productImageUrls.value[p.id]
         }
-      }))
+      }
       loading.value = false
     }, (cause) => {
       error.value = cause.message
@@ -161,14 +163,22 @@ export function useInventory() {
 
     if (!productId) throw new Error('Gagal mendapatkan ID produk.')
     if (input.imageFile) {
-      const { uploadProductImage, deleteProductImage } = await import('~/composables/useSupabaseStorage')
-      const newPath = await uploadProductImage(productId, input.imageFile)
-      await updateDoc(doc(db, 'products', productId), { imagePath: newPath, updatedAt: serverTimestamp() })
-      if (existingProduct?.imagePath) await deleteProductImage(existingProduct.imagePath)
-    } else if (input.removeImage && existingProduct?.imagePath) {
-      const { deleteProductImage } = await import('~/composables/useSupabaseStorage')
-      await updateDoc(doc(db, 'products', productId), { imagePath: deleteField(), updatedAt: serverTimestamp() })
-      await deleteProductImage(existingProduct.imagePath)
+      // Simpan langsung ke Firestore sebagai data Base64 terkompresi (< 300 KB)
+      const { compressImageToBase64 } = await import('~/composables/useImageBase64')
+      const base64Data = await compressImageToBase64(input.imageFile)
+      await updateDoc(doc(db, 'products', productId), {
+        photoBase64: base64Data,
+        imagePath: deleteField(),
+        updatedAt: serverTimestamp(),
+      })
+      productImageUrls.value[productId] = base64Data
+    } else if (input.removeImage) {
+      await updateDoc(doc(db, 'products', productId), {
+        photoBase64: deleteField(),
+        imagePath: deleteField(),
+        updatedAt: serverTimestamp(),
+      })
+      delete productImageUrls.value[productId]
     }
   }
 
@@ -214,9 +224,8 @@ export function useInventory() {
   async function deleteProduct(id: string) {
     const product = products.value.find(item => item.id === id)
     await deleteDoc(doc(db, 'products', id))
-    if (product?.imagePath) {
-      const { deleteProductImage } = await import('~/composables/useSupabaseStorage')
-      await deleteProductImage(product.imagePath)
+    if (product) {
+      delete productImageUrls.value[id]
     }
   }
 

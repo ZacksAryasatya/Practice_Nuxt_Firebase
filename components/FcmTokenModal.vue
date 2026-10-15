@@ -6,7 +6,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'test'): void
 }>()
 
 const copied = ref(false)
@@ -88,30 +87,21 @@ async function copyToken() {
           </div>
         </div>
 
-        <div class="mt-6 flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+        <div class="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
           <button
             type="button"
-            class="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 active:scale-95"
-            @click="emit('test')"
+            class="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition active:scale-95"
+            @click="emit('close')"
           >
-            Tes Notifikasi Lokal Sekarang
+            Tutup
           </button>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition active:scale-95"
-              @click="emit('close')"
-            >
-              Tutup
-            </button>
-            <button
-              type="button"
-              class="rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95"
-              @click="copyToken"
-            >
-              {{ copied ? 'Berhasil Disalin!' : 'Salin Token' }}
-            </button>
-          </div>
+          <button
+            type="button"
+            class="rounded-xl bg-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm shadow-indigo-200 hover:bg-indigo-700 transition active:scale-95"
+            @click="copyToken"
+          >
+            {{ copied ? 'Berhasil Disalin!' : 'Salin Token' }}
+          </button>
         </div>
       </section>
     </div>

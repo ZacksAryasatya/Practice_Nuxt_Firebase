@@ -78,14 +78,6 @@ async function handleEnablePushNotification() {
     notice.value = fcm.errorMessage.value
   }
 }
-
-function handleTriggerTestNotification() {
-  const title = 'Tes Notifikasi Berhasil!'
-  const body = 'FCM push notification siap digunakan untuk alert stok.'
-  if (Notification.permission === 'granted') new Notification(title, { body, icon: '/favicon.ico' })
-  fcm.incomingMessages.value.unshift({ id: crypto.randomUUID(), title, body, receivedAt: new Date() })
-  notice.value = 'Notifikasi uji coba berhasil dikirim!'
-}
 </script>
 
 <template>
@@ -127,7 +119,6 @@ function handleTriggerTestNotification() {
         @open-logout="logoutModal.isOpen = true"
         @enable-fcm="handleEnablePushNotification"
         @show-token="showFcmModal = true"
-        @test-notification="handleTriggerTestNotification"
       >
         <p v-if="notice" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800" role="status">{{ notice }}</p>
         <p v-if="inventory.error.value" class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800" role="alert">Firestore: {{ inventory.error.value }}</p>
@@ -290,7 +281,6 @@ function handleTriggerTestNotification() {
         :is-open="showFcmModal"
         :token="fcm.fcmToken.value"
         @close="showFcmModal = false"
-        @test="handleTriggerTestNotification"
       />
     </template>
   </main>

@@ -17,7 +17,6 @@ const emit = defineEmits<{
   (e: 'open-logout'): void
   (e: 'enable-fcm'): void
   (e: 'show-token'): void
-  (e: 'test-notification'): void
 }>()
 </script>
 
@@ -140,16 +139,6 @@ const emit = defineEmits<{
             <span class="hidden sm:inline">
               {{ fcmLoading ? 'Mendaftarkan...' : (fcmEnabled ? 'Notifikasi Aktif (Lihat Token)' : 'Aktifkan Push Notif') }}
             </span>
-          </button>
-
-          <button
-            v-if="fcmEnabled"
-            type="button"
-            class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100 active:scale-95"
-            title="Kirim tes notifikasi langsung ke browser"
-            @click="emit('test-notification')"
-          >
-            Tes Notifikasi
           </button>
 
           <span class="hidden text-sm text-slate-500 md:block">{{ userEmail }}</span>

@@ -10,6 +10,25 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim())
 })
 
+// Tangani push event ketika tab aplikasi diminimize atau ditutup
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = { notification: { title: 'Notifikasi Toko', body: event.data ? event.data.text() : '' } }
+  }
+
+  const title = data.notification?.title || data.data?.title || 'Pemberitahuan Inventaris'
+  const options = {
+    body: data.notification?.body || data.data?.body || 'Ada pembaruan data stok.',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+  }
+
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   event.waitUntil(

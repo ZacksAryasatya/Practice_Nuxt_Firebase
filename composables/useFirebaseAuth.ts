@@ -13,6 +13,7 @@ type AuthStatus = 'loading' | 'signed-out' | 'signed-in' | 'unconfigured'
 export function useFirebaseAuth() {
   const user = useState<User | null>('firebase-user', () => null)
   const status = useState<AuthStatus>('firebase-auth-status', () => 'loading')
+  const isAdminVerified = useState<boolean>('firebase-admin-verified', () => false)
   const config = useRuntimeConfig()
   const isConfigured = Boolean(import.meta.client && config.public.firebaseApiKey && config.public.firebaseProjectId && config.public.firebaseAppId)
 
@@ -24,23 +25,28 @@ export function useFirebaseAuth() {
           const tokenResult = await currentUser.getIdTokenResult()
           if (tokenResult.claims.admin === true) {
             user.value = currentUser
+            isAdminVerified.value = true
             status.value = 'signed-in'
           } else {
-            // Jika akun login bukan admin, otomatis tendang keluar
-            await firebaseSignOut(auth)
+            // Bukan admin: bersihkan state seketika sebelum trigger render
+            isAdminVerified.value = false
             user.value = null
             status.value = 'signed-out'
+            await firebaseSignOut(auth).catch(() => {})
           }
         } catch {
-          await firebaseSignOut(auth)
+          isAdminVerified.value = false
           user.value = null
           status.value = 'signed-out'
+          await firebaseSignOut(auth).catch(() => {})
         }
       } else {
+        isAdminVerified.value = false
         user.value = null
         status.value = 'signed-out'
       }
     }, () => {
+      isAdminVerified.value = false
       user.value = null
       status.value = 'signed-out'
     })
@@ -54,7 +60,10 @@ export function useFirebaseAuth() {
     const credential = await signInWithEmailAndPassword(auth, email, password)
     const tokenResult = await credential.user.getIdTokenResult(true)
     if (!tokenResult.claims.admin) {
-      await firebaseSignOut(auth)
+      isAdminVerified.value = false
+      user.value = null
+      status.value = 'signed-out'
+      await firebaseSignOut(auth).catch(() => {})
       throw new Error('Akses ditolak: Akun Anda belum memiliki izin Administrator.')
     }
   }
@@ -67,7 +76,10 @@ export function useFirebaseAuth() {
     const credential = await signInWithPopup(auth, provider)
     const tokenResult = await credential.user.getIdTokenResult(true)
     if (!tokenResult.claims.admin) {
-      await firebaseSignOut(auth)
+      isAdminVerified.value = false
+      user.value = null
+      status.value = 'signed-out'
+      await firebaseSignOut(auth).catch(() => {})
       throw new Error('Akses ditolak: Akun Google Anda belum terdaftar sebagai Administrator.')
     }
   }
@@ -81,8 +93,11 @@ export function useFirebaseAuth() {
   async function signOut() {
     if (!isConfigured) return
     const { auth } = useFirebaseClient()
-    await firebaseSignOut(auth)
+    isAdminVerified.value = false
+    user.value = null
+    status.value = 'signed-out'
+    await firebaseSignOut(auth).catch(() => {})
   }
 
-  return { user, status, signIn, signInWithGoogle, signUp, signOut }
+  return { user, status, isAdminVerified, signIn, signInWithGoogle, signUp, signOut }
 }

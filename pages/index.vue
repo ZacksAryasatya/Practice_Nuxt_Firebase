@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Category, Product } from '~/types/inventory'
 
-const { status, user, signIn, signInWithGoogle, signOut } = useFirebaseAuth()
+const { status, user, isAdminVerified, signIn, signInWithGoogle, signOut } = useFirebaseAuth()
 const inventory = useInventory()
 const { exportToExcel } = useInventoryExport()
 const formState = useInventoryForm(inventory)
@@ -108,8 +108,8 @@ async function handleEnablePushNotification() {
       </div>
     </section>
 
-    <!-- State Authenticated Dashboard Shell -->
-    <template v-else>
+    <!-- State Authenticated Dashboard Shell (Hanya tampil jika 100% Admin Terverifikasi) -->
+    <template v-else-if="status === 'signed-in' && isAdminVerified && user">
       <AdminShell
         :active-section="activeSection"
         :product-count="inventory.products.value.length"

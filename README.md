@@ -31,7 +31,24 @@ Requirements: Node.js 20 or later and npm.
 
 The application provides Firebase admin sign-in, realtime Firestore CRUD for products/categories, stock-in/out tracking with an append-only movement history, and FCM Web Push Notifications.
 
-Commands: `npm run dev`, `npm run typecheck`, and `npm run build`.
+## Free Deployment to Firebase Hosting
+
+This project is configured for static SPA generation to run 100% free on Firebase Hosting (Spark Plan):
+
+1. Generate static bundle:
+   ```bash
+   npm run generate
+   ```
+2. Login to Firebase CLI (one-time):
+   ```bash
+   npx firebase login
+   ```
+3. Deploy directly to Firebase Hosting:
+   ```bash
+   npx firebase deploy --only hosting
+   ```
+
+Commands: `npm run dev`, `npm run typecheck`, `npm run build`, and `npm run generate`.
 
 **No-billing constraint:** use Firebase Spark only. Do not add a payment method or upgrade to Blaze. Free quotas and terms can change; stop before a paid upgrade.
 

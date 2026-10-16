@@ -1,6 +1,14 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from 'firebase/firestore'
+
+let firestoreInstance: Firestore | null = null
 
 export function useFirebaseClient() {
   const config = useRuntimeConfig()
@@ -15,9 +23,27 @@ export function useFirebaseClient() {
 
   const app = getApps().length ? getApp() : initializeApp(firebaseConfig)
 
+  // Inisialisasi Firestore dengan Offline Persistence (Multi-tab IndexedDB cache)
+  if (!firestoreInstance) {
+    if (import.meta.client) {
+      try {
+        firestoreInstance = initializeFirestore(app, {
+          localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager(),
+          }),
+        })
+      } catch {
+        // Fallback jika sudah terinisialisasi
+        firestoreInstance = getFirestore(app)
+      }
+    } else {
+      firestoreInstance = getFirestore(app)
+    }
+  }
+
   return {
     app,
     auth: getAuth(app),
-    db: getFirestore(app),
+    db: firestoreInstance,
   }
 }

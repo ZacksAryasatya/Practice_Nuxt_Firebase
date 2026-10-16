@@ -4,12 +4,14 @@ import {
   deleteField,
   deleteDoc,
   doc,
+  getCountFromServer,
   onSnapshot,
   orderBy,
   query,
   runTransaction,
   serverTimestamp,
   updateDoc,
+  where,
   type DocumentData,
   type QueryDocumentSnapshot,
   type Unsubscribe,
@@ -233,6 +235,28 @@ export function useInventory() {
     return categories.value.find(c => c.id === categoryId)?.name ?? 'Kategori tidak ditemukan'
   }
 
+  async function fetchServerCounts() {
+    try {
+      const productColl = collection(db, 'products')
+      const categoryColl = collection(db, 'categories')
+      const activeProductsQuery = query(productColl, where('status', '==', 'active'))
+
+      const [productsSnap, categoriesSnap, activeSnap] = await Promise.all([
+        getCountFromServer(productColl),
+        getCountFromServer(categoryColl),
+        getCountFromServer(activeProductsQuery),
+      ])
+
+      return {
+        totalProducts: productsSnap.data().count,
+        totalCategories: categoriesSnap.data().count,
+        activeProducts: activeSnap.data().count,
+      }
+    } catch {
+      return null
+    }
+  }
+
   return {
     categories,
     products,
@@ -253,6 +277,7 @@ export function useInventory() {
     deleteProduct,
     recordStockMovement,
     saveLowStockThreshold: settingsAndMovements.saveLowStockThreshold,
+    fetchServerCounts,
     getCategoryName,
   }
 }

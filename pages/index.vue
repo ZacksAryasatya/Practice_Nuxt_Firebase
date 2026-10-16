@@ -7,6 +7,7 @@ const { exportToExcel } = useInventoryExport()
 const formState = useInventoryForm(inventory)
 const filterState = useInventoryFilters(inventory)
 const fcm = useFcm()
+const { isOnline } = useNetworkStatus()
 
 type Section = 'dashboard' | 'products' | 'categories' | 'stock'
 const activeSection = ref<Section>('dashboard')
@@ -121,6 +122,7 @@ async function handleEnablePushNotification() {
         :product-count="inventory.products.value.length"
         :category-count="inventory.categories.value.length"
         :user-email="user?.email"
+        :is-online="isOnline"
         :fcm-enabled="Boolean(fcm.fcmToken.value)"
         :fcm-loading="fcm.isSubscribing.value"
         :fcm-token="fcm.fcmToken.value"

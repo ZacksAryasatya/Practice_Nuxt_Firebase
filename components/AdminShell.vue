@@ -5,6 +5,7 @@ defineProps<{
   categoryCount: number
   userEmail?: string | null
   mobileOpen: boolean
+  isOnline?: boolean
   fcmEnabled?: boolean
   fcmLoading?: boolean
   fcmToken?: string | null
@@ -123,6 +124,21 @@ const emit = defineEmits<{
           </div>
         </div>
         <div class="flex items-center gap-3">
+          <!-- Indikator Offline Persistence -->
+          <div
+            class="flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold select-none"
+            :class="isOnline ? 'border-slate-200 bg-white text-slate-600' : 'border-amber-300 bg-amber-50 text-amber-800'"
+            :title="isOnline ? 'Terhubung ke Cloud Firestore' : 'Mode Offline Aktif: Data tersimpan di cache lokal IndexedDB & otomatis sinkron saat online'"
+          >
+            <span
+              class="h-2 w-2 rounded-full"
+              :class="isOnline ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'"
+            />
+            <span class="hidden sm:inline">
+              {{ isOnline ? 'Online' : 'Mode Offline' }}
+            </span>
+          </div>
+
           <!-- Tombol Push Notification FCM -->
           <button
             type="button"

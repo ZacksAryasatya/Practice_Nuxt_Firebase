@@ -5,6 +5,13 @@ export default defineNuxtConfig({
   ssr: false, // SPA mode untuk zero-cost static deployment ke Firebase Hosting gratis
   nitro: {
     preset: 'static',
+    publicAssets: [
+      {
+        baseURL: '/',
+        dir: '.',
+        maxAge: 0,
+      },
+    ],
   },
   css: ['~/assets/css/main.css'],
   app: {

@@ -8,7 +8,7 @@
     "preview": "nuxt preview",
     "typecheck": "nuxt typecheck",
     "generate": "nuxt generate",
-    "deploy:hosting": "nuxt generate && firebase deploy --only hosting",
+    "deploy:hosting": "nuxt generate && npx firebase-tools deploy --only hosting",
     "set-admin-claims": "node scripts/set-admin-claims.mjs",
     "migrate-stock-ledger": "node scripts/migrate-stock-ledger.mjs"
   },
@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^22.15.30",
     "@vue/compiler-dom": "^3.5.43",
+    "firebase-tools": "^15.34.0",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.10"
   }

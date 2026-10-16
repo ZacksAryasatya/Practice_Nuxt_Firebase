@@ -4,6 +4,7 @@
   },
   "hosting": {
     "public": ".output/public",
+    "cleanUrls": false,
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -11,7 +12,11 @@
     ],
     "rewrites": [
       {
-        "source": "**",
+        "source": "/version",
+        "destination": "/version.json"
+      },
+      {
+        "source": "!/version.json",
         "destination": "/index.html"
       }
     ]

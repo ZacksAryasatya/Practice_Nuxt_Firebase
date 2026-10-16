@@ -194,7 +194,7 @@ const statusOptions: SelectOption[] = [
 
             <div>
               <label for="product-image" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-                Foto Produk <span class="text-xs font-normal text-slate-400">(Auto-kompresi ke Firestore · Maks. file input 2 MB)</span>
+                Foto Produk <span class="text-xs font-normal text-slate-400">(Maks. file input 2 MB)</span>
               </label>
               <input
                 id="product-image"

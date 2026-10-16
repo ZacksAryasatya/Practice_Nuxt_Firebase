@@ -9,11 +9,12 @@
 
 1. Visitor opens the application.
 2. Auth state is checked by the Nuxt client plugin/composable.
-3. If signed out, redirect to `/login`; protected dashboard content is not rendered as accessible inventory data.
-4. Admin enters credentials and submits.
-5. Firebase Authentication authenticates the account.
-6. On success, route to `/dashboard`; on failure, show a non-sensitive error and allow retry.
-7. Dashboard shows summary counts and navigation to Products and Categories.
+3. If signed out, redirect to login state.
+4. Admin enters email/password or selects **Masuk dengan Google**.
+5. Firebase Authentication authenticates the credentials/OAuth popup.
+6. System verifies the `admin: true` token claim; unauthorized accounts are immediately rejected and signed out.
+7. On success, route to dashboard; on failure, show a clear error message.
+8. Dashboard displays real-time inventory metrics and navigation.
 
 ## 2. Create or edit product
 

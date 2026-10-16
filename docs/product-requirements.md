@@ -40,7 +40,8 @@ Account provisioning is performed outside public signup (for example, create the
 
 ### Authentication
 
-- Admin can sign in using the configured Firebase Authentication provider.
+- Admin can sign in using Email/Password or Google Sign-In (OAuth).
+- Admin privilege guard: authenticated users without the `admin: true` custom claim are rejected and signed out automatically.
 - Unauthenticated visitors cannot access protected dashboard pages or data.
 - Admin can sign out; protected views return to sign-in after sign-out.
 - No public account creation or password reset flow is included in the initial MVP.

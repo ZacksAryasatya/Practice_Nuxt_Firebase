@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Category, Product } from '~/types/inventory'
 
-const { status, user, signIn, signOut } = useFirebaseAuth()
+const { status, user, signIn, signInWithGoogle, signOut } = useFirebaseAuth()
 const inventory = useInventory()
 const { exportToExcel } = useInventoryExport()
 const formState = useInventoryForm(inventory)
@@ -22,26 +22,14 @@ let noticeTimer: ReturnType<typeof setTimeout> | null = null
 function setNotice(msg: string) {
   notice.value = msg
   if (noticeTimer) clearTimeout(noticeTimer)
-  noticeTimer = setTimeout(() => {
-    notice.value = ''
-  }, 4500)
+  noticeTimer = setTimeout(() => { notice.value = '' }, 4500)
 }
 
 const previewImage = reactive({ url: null as string | null, title: '' })
-
 const logoutModal = reactive({ isOpen: false, isProcessing: false })
-const {
-  deleteModal,
-  executeDelete,
-  confirmDeleteProduct,
-  confirmDeleteCategory,
-} = useProductDeleteAction(inventory, setNotice)
+const { deleteModal, executeDelete, confirmDeleteProduct, confirmDeleteCategory } = useProductDeleteAction(inventory, setNotice)
 
-const editingProduct = computed(() =>
-  formState.editingProductId.value
-    ? inventory.products.value.find(p => p.id === formState.editingProductId.value)
-    : undefined
-)
+const editingProduct = computed(() => formState.editingProductId.value ? inventory.products.value.find(p => p.id === formState.editingProductId.value) : undefined)
 
 watch(() => status.value, (s) => {
   if (s === 'signed-in') inventory.subscribe()
@@ -52,13 +40,17 @@ onBeforeUnmount(inventory.unsubscribe)
 async function handleLoginSubmit(password: string) {
   loginError.value = ''
   isLoggingIn.value = true
-  try {
-    await signIn(loginEmail.value, password)
-  } catch {
-    loginError.value = 'Login gagal. Periksa email dan kata sandi.'
-  } finally {
-    isLoggingIn.value = false
-  }
+  try { await signIn(loginEmail.value, password) }
+  catch (err) { loginError.value = err instanceof Error ? err.message : 'Login gagal. Periksa email dan kata sandi.' }
+  finally { isLoggingIn.value = false }
+}
+
+async function handleGoogleLogin() {
+  loginError.value = ''
+  isLoggingIn.value = true
+  try { await signInWithGoogle() }
+  catch (err) { loginError.value = err instanceof Error ? err.message : 'Login Google gagal.' }
+  finally { isLoggingIn.value = false }
 }
 
 async function confirmLogout() {
@@ -105,6 +97,7 @@ async function handleEnablePushNotification() {
         :is-submitting="isLoggingIn"
         :error-message="loginError"
         @submit="handleLoginSubmit"
+        @google-submit="handleGoogleLogin"
       />
     </section>
 

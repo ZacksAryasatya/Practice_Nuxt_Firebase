@@ -1,7 +1,9 @@
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as firebaseSignOut,
   type User,
 } from 'firebase/auth'
@@ -30,7 +32,25 @@ export function useFirebaseAuth() {
   async function signIn(email: string, password: string) {
     if (!isConfigured) throw new Error('Firebase is not configured')
     const { auth } = useFirebaseClient()
-    await signInWithEmailAndPassword(auth, email, password)
+    const credential = await signInWithEmailAndPassword(auth, email, password)
+    const tokenResult = await credential.user.getIdTokenResult(true)
+    if (!tokenResult.claims.admin) {
+      await firebaseSignOut(auth)
+      throw new Error('Akses ditolak: Akun Anda belum memiliki izin Administrator.')
+    }
+  }
+
+  async function signInWithGoogle() {
+    if (!isConfigured) throw new Error('Firebase is not configured')
+    const { auth } = useFirebaseClient()
+    const provider = new GoogleAuthProvider()
+    provider.setCustomParameters({ prompt: 'select_account' })
+    const credential = await signInWithPopup(auth, provider)
+    const tokenResult = await credential.user.getIdTokenResult(true)
+    if (!tokenResult.claims.admin) {
+      await firebaseSignOut(auth)
+      throw new Error('Akses ditolak: Akun Google Anda belum terdaftar sebagai Administrator.')
+    }
   }
 
   async function signUp(email: string, password: string) {
@@ -45,5 +65,5 @@ export function useFirebaseAuth() {
     await firebaseSignOut(auth)
   }
 
-  return { user, status, signIn, signUp, signOut }
+  return { user, status, signIn, signInWithGoogle, signUp, signOut }
 }

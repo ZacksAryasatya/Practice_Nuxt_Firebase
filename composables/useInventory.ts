@@ -144,7 +144,7 @@ export function useInventory() {
     if (!Number.isInteger(input.priceIdr) || input.priceIdr < 0) throw new Error('Harga harus berupa bilangan bulat nol atau lebih.')
     if (products.value.some(p => p.sku === sku && p.id !== id)) throw new Error('SKU sudah digunakan.')
 
-    const payload = {
+    const payload: Record<string, any> = {
       name,
       normalizedName: normalize(name),
       sku,
@@ -154,31 +154,31 @@ export function useInventory() {
       status: input.status,
       updatedAt: serverTimestamp(),
     }
-    const existingProduct = id ? products.value.find(p => p.id === id) : undefined
-    let productId = id
-    if (productId) await updateDoc(doc(db, 'products', productId), payload)
-    else {
-      productId = (await addDoc(collection(db, 'products'), { ...payload, stockQuantity: 0, createdAt: serverTimestamp() })).id
-    }
 
-    if (!productId) throw new Error('Gagal mendapatkan ID produk.')
     if (input.imageFile) {
-      // Simpan langsung ke Firestore sebagai data Base64 terkompresi (< 300 KB)
       const { compressImageToBase64 } = await import('~/composables/useImageBase64')
       const base64Data = await compressImageToBase64(input.imageFile)
-      await updateDoc(doc(db, 'products', productId), {
-        photoBase64: base64Data,
-        imagePath: deleteField(),
-        updatedAt: serverTimestamp(),
-      })
-      productImageUrls.value[productId] = base64Data
+      payload.photoBase64 = base64Data
+      payload.imagePath = deleteField()
     } else if (input.removeImage) {
-      await updateDoc(doc(db, 'products', productId), {
-        photoBase64: deleteField(),
-        imagePath: deleteField(),
-        updatedAt: serverTimestamp(),
-      })
-      delete productImageUrls.value[productId]
+      payload.photoBase64 = deleteField()
+      payload.imagePath = deleteField()
+    }
+
+    if (id) {
+      await updateDoc(doc(db, 'products', id), payload)
+      if (input.imageFile && typeof payload.photoBase64 === 'string') {
+        productImageUrls.value[id] = payload.photoBase64
+      } else if (input.removeImage) {
+        delete productImageUrls.value[id]
+      }
+    } else {
+      payload.stockQuantity = 0
+      payload.createdAt = serverTimestamp()
+      const newDoc = await addDoc(collection(db, 'products'), payload)
+      if (input.imageFile && typeof payload.photoBase64 === 'string') {
+        productImageUrls.value[newDoc.id] = payload.photoBase64
+      }
     }
   }
 

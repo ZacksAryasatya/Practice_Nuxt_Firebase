@@ -31,6 +31,12 @@ const emit = defineEmits<{
 function handleFileChange(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0] ?? null
+  if (file && file.size > 2 * 1024 * 1024) {
+    alert('Ukuran file foto maksimal 2 MB agar aman dikompresi ke Firestore.')
+    target.value = ''
+    emit('update:image', null)
+    return
+  }
   emit('update:image', file)
   emit('update:removeImage', false)
 }
@@ -188,7 +194,7 @@ const statusOptions: SelectOption[] = [
 
             <div>
               <label for="product-image" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
-                Foto Produk <span class="text-xs font-normal text-slate-400">(Maks. 5 MB)</span>
+                Foto Produk <span class="text-xs font-normal text-slate-400">(Auto-kompresi ke Firestore · Maks. file input 2 MB)</span>
               </label>
               <input
                 id="product-image"

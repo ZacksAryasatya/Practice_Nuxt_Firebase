@@ -18,9 +18,28 @@ export function useFirebaseAuth() {
 
   if (import.meta.client && isConfigured && status.value === 'loading') {
     const { auth } = useFirebaseClient()
-    onAuthStateChanged(auth, (currentUser) => {
-      user.value = currentUser
-      status.value = currentUser ? 'signed-in' : 'signed-out'
+    onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        try {
+          const tokenResult = await currentUser.getIdTokenResult()
+          if (tokenResult.claims.admin === true) {
+            user.value = currentUser
+            status.value = 'signed-in'
+          } else {
+            // Jika akun login bukan admin, otomatis tendang keluar
+            await firebaseSignOut(auth)
+            user.value = null
+            status.value = 'signed-out'
+          }
+        } catch {
+          await firebaseSignOut(auth)
+          user.value = null
+          status.value = 'signed-out'
+        }
+      } else {
+        user.value = null
+        status.value = 'signed-out'
+      }
     }, () => {
       user.value = null
       status.value = 'signed-out'

@@ -21,16 +21,6 @@ function handleSubmit() {
 
 <template>
   <div class="w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl shadow-indigo-100/50 border border-slate-100 animate-slide-down">
-    <div class="mb-8 flex items-center gap-3.5">
-      <div class="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-600 text-base font-extrabold text-white shadow-lg shadow-indigo-200">
-        IA
-      </div>
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-widest text-indigo-600">Inventory Toko</p>
-        <h1 class="text-lg font-bold text-slate-900 leading-tight">Admin Panel</h1>
-      </div>
-    </div>
-    
     <h2 class="text-2xl font-bold tracking-tight text-slate-900">Selamat datang kembali</h2>
     <p class="mt-1.5 text-sm text-slate-500">Masuk untuk mengelola inventaris toko Anda.</p>
 

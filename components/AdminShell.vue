@@ -35,13 +35,10 @@ const emit = defineEmits<{
       class="fixed inset-y-0 left-0 z-30 flex w-64 -translate-x-full flex-col bg-slate-950 text-slate-300 transition-transform lg:translate-x-0"
       :class="mobileOpen ? 'translate-x-0' : ''"
     >
-      <div class="flex h-20 items-center gap-3 border-b border-white/10 px-6">
-        <div class="grid h-10 w-10 place-items-center rounded-2xl bg-brand-500 text-sm font-extrabold text-white shadow-lg shadow-brand-950/30">
-          IA
-        </div>
+      <div class="flex h-20 items-center justify-between border-b border-white/10 px-6">
         <div>
-          <p class="text-xs font-bold uppercase tracking-[0.22em] text-indigo-300">Inventory</p>
-          <p class="font-semibold text-white">Admin Panel</p>
+          <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-indigo-400">Inventory</p>
+          <p class="text-lg font-bold tracking-tight text-white">Admin Panel</p>
         </div>
         <button
           class="ml-auto text-slate-400 lg:hidden"

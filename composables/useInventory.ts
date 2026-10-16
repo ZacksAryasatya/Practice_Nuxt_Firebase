@@ -161,8 +161,10 @@ export function useInventory() {
       const { compressImageToBase64 } = await import('~/composables/useImageBase64')
       const base64Data = await compressImageToBase64(input.imageFile)
       payload.photoBase64 = base64Data
-      payload.imagePath = deleteField()
-    } else if (input.removeImage) {
+      if (id) {
+        payload.imagePath = deleteField()
+      }
+    } else if (input.removeImage && id) {
       payload.photoBase64 = deleteField()
       payload.imagePath = deleteField()
     }

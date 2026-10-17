@@ -2,8 +2,6 @@
 
 A modern, responsive web application for managing retail store inventory, tracking product stock movements, and receiving stock alerts. Built with Nuxt 3, Tailwind CSS, and Firebase.
 
-Live Demo: [https://fir-admin-panel-dev.web.app](https://fir-admin-panel-dev.web.app)
-
 ---
 
 ## Overview
